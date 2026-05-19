@@ -26,7 +26,7 @@ class Note:
     version: int = 1
 
     def __post_init__(self):
-        if not self.title or not isinstance(self.title, str):
+        if not isinstance(self.title, str) or not self.title.strip():
             raise ValidationError("title must be a non-empty string")
         if not isinstance(self.body, str):  # FR-01: body is optional; empty string is valid
             raise ValidationError("body must be a string")
