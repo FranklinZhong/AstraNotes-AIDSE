@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AstraNotes — Git Repository History</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo { font-size: 20px; font-weight: 700; color: #58a6ff; letter-spacing: -0.5px; }
+  .subtitle { font-size: 13px; color: #8b949e; margin-top: 2px; }
+
+  .container { max-width: 1060px; margin: 0 auto; padding: 32px 24px; }
+
+  /* Stats */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 14px 18px;
+  }
+  .stat-card .val { font-size: 26px; font-weight: 700; }
+  .stat-card .lbl { font-size: 12px; color: #8b949e; margin-top: 3px; }
+  .val-green { color: #3fb950; }
+  .val-blue  { color: #58a6ff; }
+  .val-white { color: #e6edf3; }
+
+  /* Legend */
+  .legend {
+    display: flex; gap: 20px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #8b949e; }
+  .ldot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Graph wrapper */
+  .graph-wrap { position: relative; }
+
+  .graph-svg {
+    position: absolute;
+    left: 0; top: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Commit list */
+  .commits { margin-left: 84px; }
+
+  .commit {
+    position: relative;
+    padding: 13px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    margin-bottom: 2px;
+    transition: background .12s, border-color .12s;
+  }
+  .commit:hover        { background: #161b22; border-color: #30363d; }
+  .commit.open         { background: #161b22; border-color: #30363d; }
+  .commit.dimmed       { opacity: 0.38; }
+
+  /* Dot */
+  .dot-anchor {
+    position: absolute;
+    left: -54px; top: 50%; transform: translateY(-50%);
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .dot {
+    width: 13px; height: 13px; border-radius: 50%;
+    border: 2px solid #0d1117;
+  }
+
+  /* Header row */
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .hash {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 12px; color: #58a6ff;
+    background: rgba(88,166,255,.1);
+    padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+  }
+  .msg { font-size: 14px; font-weight: 500; flex: 1; }
+
+  .badge {
+    font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 12px; flex-shrink: 0; white-space: nowrap;
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  .b-feat  { background: rgba(35,134,54,.2);   color: #3fb950; }
+  .b-fix   { background: rgba(248,81,73,.15);  color: #f85149; }
+  .b-chore { background: rgba(139,148,158,.15);color: #8b949e; }
+  .b-test  { background: rgba(163,113,247,.2); color: #bc8cff; }
+  .b-init  { background: rgba(139,148,158,.1); color: #8b949e; }
+  .b-merge { background: rgba(88,166,255,.1);  color: #58a6ff; }
+  .b-orphan{ background: rgba(72,79,88,.2);    color: #484f58; }
+
+  /* Meta */
+  .meta {
+    display: flex; gap: 14px; margin-top: 5px;
+    font-size: 12px; color: #8b949e; flex-wrap: wrap;
+  }
+
+  /* Refs */
+  .refs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+  .ref {
+    font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 12px; white-space: nowrap;
+  }
+  .r-main    { background: rgba(35,134,54,.15);  color: #3fb950; border: 1px solid rgba(35,134,54,.3); }
+  .r-feature { background: rgba(88,166,255,.12); color: #58a6ff; border: 1px solid rgba(88,166,255,.3); }
+  .r-test    { background: rgba(163,113,247,.12);color: #bc8cff; border: 1px solid rgba(163,113,247,.3); }
+  .r-head    { background: rgba(248,166,0,.12);  color: #d29922; border: 1px solid rgba(248,166,0,.3); }
+  .r-remote  { background: rgba(139,148,158,.08);color: #8b949e; border: 1px solid rgba(139,148,158,.2); }
+
+  /* Detail panel */
+  .detail { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #21262d; }
+  .open .detail { display: block; }
+
+  .files { display: flex; flex-direction: column; gap: 5px; }
+  .file-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .fname {
+    font-family: "SF Mono", "Fira Code", monospace;
+    color: #8b949e; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .fstat { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
+  .bar { display: flex; gap: 1px; }
+  .bl { width: 8px; height: 10px; border-radius: 1px; }
+  .ba { background: #3fb950; }
+  .bd { background: #f85149; }
+  .be { background: #21262d; }
+  .na { color: #3fb950; font-size: 11px; }
+  .nd { color: #f85149; font-size: 11px; }
+
+  .summary {
+    font-size: 12px; color: #8b949e; margin-top: 9px; line-height: 1.65;
+  }
+  .summary strong { color: #e6edf3; }
+  code { font-family: "SF Mono","Fira Code",monospace; font-size: 11px; color: #58a6ff; }
+
+  footer {
+    text-align: center; font-size: 12px; color: #484f58;
+    margin-top: 48px; padding-bottom: 32px;
+  }
+
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: repeat(2,1fr); }
+    .commits { margin-left: 44px; }
+    .dot-anchor { left: -32px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+    <circle cx="6"  cy="6"  r="3" stroke="#58a6ff" stroke-width="2"/>
+    <circle cx="6"  cy="18" r="3" stroke="#3fb950" stroke-width="2"/>
+    <circle cx="18" cy="12" r="3" stroke="#bc8cff" stroke-width="2"/>
+    <line x1="6" y1="9" x2="6" y2="15" stroke="#30363d" stroke-width="2"/>
+    <line x1="8.6" y1="7.4"  x2="15.4" y2="10.6" stroke="#30363d" stroke-width="2"/>
+    <line x1="8.6" y1="16.6" x2="15.4" y2="13.4" stroke="#30363d" stroke-width="2"/>
+  </svg>
+  <div>
+    <div class="logo">AstraNotes</div>
+    <div class="subtitle">github.com/FranklinZhong/AstraNotes-AIDSE &nbsp;·&nbsp; Updated 2026-05-19</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="stats-bar">
+    <div class="stat-card"><div class="val val-white">9</div><div class="lbl">Commits on main</div></div>
+    <div class="stat-card"><div class="val val-blue">3</div><div class="lbl">Branches</div></div>
+    <div class="stat-card"><div class="val val-green">61</div><div class="lbl">Tests Passing</div></div>
+    <div class="stat-card"><div class="val val-green">✓</div><div class="lbl">CI Passing</div></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="ldot" style="background:#3fb950"></div>main</div>
+    <div class="legend-item"><div class="ldot" style="background:#58a6ff"></div>feature/search-filter</div>
+    <div class="legend-item"><div class="ldot" style="background:#bc8cff"></div>test/title-validation</div>
+    <div class="legend-item"><div class="ldot" style="background:#484f58"></div>orphan (filter-branch artifact)</div>
+  </div>
+
+  <div class="graph-wrap" id="graphWrap">
+    <div class="commits" id="commits">
+
+      <!-- b488b1f  HEAD / main -->
+      <div class="commit" id="c-b488b1f" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950;box-shadow:0 0 0 3px rgba(35,134,54,.25)"></div></div>
+        <div class="row">
+          <span class="hash">b488b1f</span>
+          <span class="msg">fix: auth returns 401 for missing token and CI compatibility</span>
+          <span class="badge b-fix">fix</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-05-19 00:40</span></div>
+        <div class="refs">
+          <span class="ref r-head">HEAD</span>
+          <span class="ref r-main">main</span>
+          <span class="ref r-remote">origin/main</span>
+        </div>
+        <div class="detail">
+          <div class="files">
+            <div class="file-row"><span class="fname">app/auth/dependencies.py</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl ba"></span><span class="bl bd"></span><span class="bl be"></span><span class="bl be"></span></span><span class="na">+9</span><span class="nd">-2</span></span></div>
+            <div class="file-row"><span class="fname">requirements.txt</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl be"></span><span class="bl be"></span><span class="bl be"></span><span class="bl be"></span></span><span class="na">+1</span><span class="nd">-1</span></span></div>
+            <div class="file-row"><span class="fname">pytest.ini</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl be"></span><span class="bl be"></span><span class="bl be"></span><span class="bl be"></span></span><span class="na">+1</span></span></div>
+          </div>
+          <div class="summary">3 files · <strong>+11</strong> / <strong>-3</strong><br>
+            <code>HTTPBearer(auto_error=False)</code> — FastAPI 0.115 returns 403 by default when no token is present; fixed to explicitly raise 401. Relaxed <code>bcrypt</code> pin. Added <code>asyncio_mode = auto</code> to pytest.ini. CI now passes on Python 3.11 and 3.12.
+          </div>
+        </div>
+      </div>
+
+      <!-- 3ee7f18  Merge PR #1 -->
+      <div class="commit" id="c-3ee7f18" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950"></div></div>
+        <div class="row">
+          <span class="hash">3ee7f18</span>
+          <span class="msg">Merge pull request #1 — feature/search-filter</span>
+          <span class="badge b-merge">merge</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-05-18 19:56</span></div>
+        <div class="detail">
+          <div class="summary">Merged <code>feature/search-filter</code> into <code>main</code>. Brings in tag-aware filtering and tags field in note responses.</div>
+        </div>
+      </div>
+
+      <!-- 78195e4  feature/search-filter -->
+      <div class="commit" id="c-78195e4" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#58a6ff;box-shadow:0 0 0 3px rgba(88,166,255,.2)"></div></div>
+        <div class="row">
+          <span class="hash">78195e4</span>
+          <span class="msg">feat: add tag-aware filtering and expose tags in note responses</span>
+          <span class="badge b-feat">feat</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-05-18 19:32</span></div>
+        <div class="refs">
+          <span class="ref r-feature">feature/search-filter</span>
+          <span class="ref r-remote">origin/feature/search-filter</span>
+        </div>
+        <div class="detail">
+          <div class="files">
+            <div class="file-row"><span class="fname">app/routers/notes.py</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span><span class="bl bd"></span><span class="bl be"></span></span><span class="na">+9</span><span class="nd">-3</span></span></div>
+            <div class="file-row"><span class="fname">app/schemas/note.py</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span><span class="bl be"></span></span><span class="na">+4</span></span></div>
+          </div>
+          <div class="summary">2 files · <strong>+13</strong> / <strong>-3</strong><br>
+            <code>NoteCreate</code>, <code>NoteUpdate</code>, <code>NoteResponse</code> now include <code>tags</code>. <code>GET /notes/?tags=x&amp;tags=y</code> filters by tag intersection, applied after visibility enforcement (US-03, FR-03).
+          </div>
+        </div>
+      </div>
+
+      <!-- 0439436  Merge PR #2 -->
+      <div class="commit" id="c-0439436" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950"></div></div>
+        <div class="row">
+          <span class="hash">0439436</span>
+          <span class="msg">Merge pull request #2 — test/title-validation</span>
+          <span class="badge b-merge">merge</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-05-18 19:56</span></div>
+        <div class="detail">
+          <div class="summary">Merged <code>test/title-validation</code> into <code>main</code>. Brings in whitespace title validation fix and 3 new tests.</div>
+        </div>
+      </div>
+
+      <!-- 1f625f4  test/title-validation -->
+      <div class="commit" id="c-1f625f4" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#bc8cff;box-shadow:0 0 0 3px rgba(163,113,247,.2)"></div></div>
+        <div class="row">
+          <span class="hash">1f625f4</span>
+          <span class="msg">test: add whitespace-only title validation tests and fix domain model</span>
+          <span class="badge b-test">test</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-05-18 19:33</span></div>
+        <div class="refs">
+          <span class="ref r-test">test/title-validation</span>
+          <span class="ref r-remote">origin/test/title-validation</span>
+        </div>
+        <div class="detail">
+          <div class="files">
+            <div class="file-row"><span class="fname">AstraNotes_v1/note.py</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl bd"></span><span class="bl be"></span><span class="bl be"></span><span class="bl be"></span></span><span class="na">+1</span><span class="nd">-1</span></span></div>
+            <div class="file-row"><span class="fname">AstraNotes_v1/tests/test_note_model.py</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span></span><span class="na">+15</span></span></div>
+          </div>
+          <div class="summary">2 files · <strong>+16</strong> / <strong>-1</strong><br>
+            <code>Note.__post_init__</code> now checks <code>.strip()</code> — domain model previously accepted <code>"&nbsp;&nbsp;&nbsp;"</code>, <code>"\t"</code>, <code>"\n"</code> as valid titles. 3 new tests added. Total: <strong>61 tests passing</strong>.
+          </div>
+        </div>
+      </div>
+
+      <!-- orphan 7e13390 -->
+      <div class="commit dimmed" id="c-7e13390" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#484f58"></div></div>
+        <div class="row">
+          <span class="hash">7e13390</span>
+          <span class="msg">test: add whitespace-only title validation tests and fix domain model</span>
+          <span class="badge b-orphan">orphan</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-05-18 19:33</span></div>
+        <div class="detail">
+          <div class="summary">Artifact from <code>git filter-branch</code> — duplicate of 1f625f4, not reachable from any branch. Safe to ignore.</div>
+        </div>
+      </div>
+
+      <!-- b96261b  fix CI Python 3.11 -->
+      <div class="commit" id="c-b96261b" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950"></div></div>
+        <div class="row">
+          <span class="hash">b96261b</span>
+          <span class="msg">fix: resolve CI failures on Python 3.11</span>
+          <span class="badge b-fix">fix</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-05-18 19:46</span></div>
+        <div class="detail">
+          <div class="files">
+            <div class="file-row"><span class="fname">.github/workflows/ci.yml</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl be"></span><span class="bl be"></span><span class="bl be"></span><span class="bl be"></span></span><span class="na">+1</span></span></div>
+            <div class="file-row"><span class="fname">app/tests/conftest.py</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl ba"></span><span class="bl bd"></span><span class="bl be"></span><span class="bl be"></span></span><span class="na">+7</span><span class="nd">-3</span></span></div>
+            <div class="file-row"><span class="fname">app/tests/test_notes_api.py</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl bd"></span><span class="bl bd"></span><span class="bl bd"></span><span class="bl be"></span></span><span class="na">+3</span><span class="nd">-12</span></span></div>
+            <div class="file-row"><span class="fname">requirements.txt</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl be"></span><span class="bl be"></span><span class="bl be"></span><span class="bl be"></span></span><span class="na">+1</span></span></div>
+          </div>
+          <div class="summary">4 files · <strong>+11</strong> / <strong>-15</strong><br>
+            Replaced Chinese docstrings in test files with English (UnicodeEncodeError on Python 3.11). Added <code>PYTHONIOENCODING=utf-8</code> to CI env. Pinned bcrypt.
+          </div>
+        </div>
+      </div>
+
+      <!-- 2198fab  clean up -->
+      <div class="commit" id="c-2198fab" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950"></div></div>
+        <div class="row">
+          <span class="hash">2198fab</span>
+          <span class="msg">chore: clean up repo for public release</span>
+          <span class="badge b-chore">chore</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-05-18 19:30</span></div>
+        <div class="detail">
+          <div class="summary"><strong>84 files added · 6,625 insertions</strong><br>
+            Added all project source files: FastAPI app, domain layer, 58 tests, UML diagrams, planning docs. Removed personal and course-specific references. Removed C++ prototype and PDF duplicates. Updated <code>.gitignore</code>.
+          </div>
+        </div>
+      </div>
+
+      <!-- 0246b0d  github check -->
+      <div class="commit" id="c-0246b0d" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950"></div></div>
+        <div class="row">
+          <span class="hash">0246b0d</span>
+          <span class="msg">github Check</span>
+          <span class="badge b-chore">chore</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-04-01 18:34</span></div>
+        <div class="detail">
+          <div class="summary">Initial CI workflow configuration and README setup.</div>
+        </div>
+      </div>
+
+      <!-- b3b2407  init -->
+      <div class="commit" id="c-b3b2407" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950"></div></div>
+        <div class="row">
+          <span class="hash">b3b2407</span>
+          <span class="msg">Initialize AstraNotes project</span>
+          <span class="badge b-init">init</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-04-01 18:30</span></div>
+        <div class="detail">
+          <div class="summary">First commit — repository created. 5 files, 42 lines.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>AstraNotes &nbsp;·&nbsp; github.com/FranklinZhong/AstraNotes-AIDSE &nbsp;·&nbsp; Generated 2026-05-19</footer>
+
+<script>
+function tog(el) { el.classList.toggle('open'); drawGraph(); }
+
+function drawGraph() {
+  const wrap = document.getElementById('graphWrap');
+  const old = wrap.querySelector('.graph-svg');
+  if (old) old.remove();
+
+  const commits = Array.from(wrap.querySelectorAll('.commit'));
+  const wrapRect = wrap.getBoundingClientRect();
+  const scrollTop = window.scrollY || document.documentElement.scrollTop;
+
+  const pos = {};
+  commits.forEach(el => {
+    const id = el.id.replace('c-', '');
+    const anchor = el.querySelector('.dot-anchor');
+    const r = anchor.getBoundingClientRect();
+    pos[id] = {
+      x: r.left + r.width / 2 - wrapRect.left,
+      y: r.top  + r.height/ 2 - wrapRect.top + scrollTop
+    };
+  });
+
+  const colors = {
+    'b488b1f': '#3fb950',
+    '3ee7f18': '#3fb950',
+    '78195e4': '#58a6ff',
+    '0439436': '#3fb950',
+    '1f625f4': '#bc8cff',
+    '7e13390': '#484f58',
+    'b96261b': '#3fb950',
+    '2198fab': '#3fb950',
+    '0246b0d': '#3fb950',
+    'b3b2407': '#3fb950',
+  };
+
+  // parent → child direction for drawing lines (child draws line to parent)
+  const parents = {
+    'b488b1f': '3ee7f18',
+    '3ee7f18': '0439436',   // first parent (main line)
+    '78195e4': 'b96261b',   // branch commit
+    '0439436': 'b96261b',   // first parent
+    '1f625f4': 'b96261b',   // branch commit
+    '7e13390': 'b96261b',   // orphan
+    'b96261b': '2198fab',
+    '2198fab': '0246b0d',
+    '0246b0d': 'b3b2407',
+  };
+
+  const h = wrap.scrollHeight + 20;
+  const w = 84;
+  let svg = `<svg class="graph-svg" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">`;
+
+  for (const [child, parent] of Object.entries(parents)) {
+    if (!pos[child] || !pos[parent]) continue;
+    const c = pos[child], p = pos[parent];
+    const col = colors[child] || '#30363d';
+    const dx = Math.abs(c.x - p.x);
+
+    if (dx < 3) {
+      svg += `<line x1="${c.x}" y1="${c.y}" x2="${p.x}" y2="${p.y}"
+                    stroke="${col}" stroke-width="2" stroke-opacity="0.55"/>`;
+    } else {
+      const my = (c.y + p.y) / 2;
+      svg += `<path d="M${c.x},${c.y} C${c.x},${my} ${p.x},${my} ${p.x},${p.y}"
+                    fill="none" stroke="${col}" stroke-width="2" stroke-opacity="0.55"/>`;
+    }
+  }
+
+  // Second parent lines for merge commits
+  const mergeParents = {
+    '3ee7f18': '78195e4',
+    '0439436': '1f625f4',
+  };
+  for (const [merge, branch] of Object.entries(mergeParents)) {
+    if (!pos[merge] || !pos[branch]) continue;
+    const m = pos[merge], b = pos[branch];
+    const my = (m.y + b.y) / 2;
+    svg += `<path d="M${m.x},${m.y} C${m.x},${my} ${b.x},${my} ${b.x},${b.y}"
+                  fill="none" stroke="${colors[branch]}" stroke-width="2"
+                  stroke-opacity="0.4" stroke-dasharray="4 3"/>`;
+  }
+
+  svg += '</svg>';
+  wrap.insertAdjacentHTML('afterbegin', svg);
+}
+
+window.addEventListener('load', drawGraph);
+window.addEventListener('resize', drawGraph);
+</script>
+</body>
+</html>
