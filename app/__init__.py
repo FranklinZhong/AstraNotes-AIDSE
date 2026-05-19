@@ -1,0 +1,1 @@
+"""AstraNotes FastAPI application package."""

@@ -1,3 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables (contains secrets — never commit)
+.env
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+
+# macOS
+.DS_Store
+
+# Build artifacts
 /bin
 /build
 *.o
+
+# Generated / compiled output
+*.pdf
+
+# IDE configuration (local overrides)
+.vscode/
+
+# Data files
+notes.json

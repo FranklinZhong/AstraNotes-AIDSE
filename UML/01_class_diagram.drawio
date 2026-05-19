@@ -1,0 +1,161 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="21.0.0" type="device">
+  <diagram id="page-0" name="1. Class Diagram">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="Note" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="240" height="294" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="+ id: str  &lt;&lt;UUID&gt;&gt;&#10;+ title: str&#10;+ body: str&#10;+ tags: list[str]&#10;+ visibility: str  &lt;&lt;&quot;public&quot;|&quot;private&quot;&gt;&gt;&#10;+ author_id: str&#10;+ created_at: str&#10;+ updated_at: str&#10;+ version: int" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="2">
+          <mxGeometry x="0" y="30" width="240" height="188" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="2">
+          <mxGeometry x="0" y="218" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="+ patch(**fields): Note&#10;+ to_dict(): dict&#10;+ from_dict(data): Note  {static}" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="2">
+          <mxGeometry x="0" y="226" width="240" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="&lt;&lt;abstract&gt;&gt;&#10;AbstractNoteRepository" style="swimlane;html=0;fontStyle=3;align=center;startSize=44;fillColor=#f5f5f5;strokeColor=#666666;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="330" y="40" width="280" height="228" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="6">
+          <mxGeometry x="0" y="52" width="280" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="+ create(note): Note  {abstract}&#10;+ get(note_id): Note  {abstract}&#10;+ list(filters): list  {abstract}&#10;+ update(note): Note  {abstract}&#10;+ delete(note_id): bool  {abstract}&#10;+ add_version_snapshot(note, change_type): None  {abstract}&#10;+ get_versions(note_id): list  {abstract}&#10;+ revert_to_version(note_id, v): Note  {abstract}" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="6">
+          <mxGeometry x="0" y="60" width="280" height="168" as="geometry" />
+        </mxCell>
+        <mxCell id="9" value="JsonFileNoteRepository" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="330" y="500" width="280" height="234" as="geometry" />
+        </mxCell>
+        <mxCell id="10" value="- _filepath: str&#10;- _lock: threading.Lock" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="9">
+          <mxGeometry x="0" y="30" width="280" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="9">
+          <mxGeometry x="0" y="78" width="280" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="+ create / get / list / update / delete&#10;+ add_version_snapshot / get_versions&#10;+ revert_to_version&#10;- _load(): dict&#10;- _save(data): None&#10;- _rotate_backups(): None&#10;- _recover(): dict" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="9">
+          <mxGeometry x="0" y="86" width="280" height="148" as="geometry" />
+        </mxCell>
+        <mxCell id="13" value="NoteService" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="680" y="200" width="270" height="234" as="geometry" />
+        </mxCell>
+        <mxCell id="14" value="- _repo: AbstractNoteRepository&#10;- _policy: PrivacyPolicy&#10;- _history: VersionHistory" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="13">
+          <mxGeometry x="0" y="30" width="270" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="15" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="13">
+          <mxGeometry x="0" y="98" width="270" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="16" value="+ create_note(...): Note&#10;+ get_note(user_id, note_id): Note&#10;+ list_notes(user_id, filters): list&#10;+ update_note(user_id, note_id, **f): Note&#10;+ delete_note(user_id, note_id): bool&#10;+ revert_note(user_id, note_id, v): Note" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="13">
+          <mxGeometry x="0" y="106" width="270" height="128" as="geometry" />
+        </mxCell>
+        <mxCell id="17" value="&lt;&lt;static&gt;&gt;&#10;PrivacyPolicy" style="swimlane;html=0;fontStyle=1;align=center;startSize=44;fillColor=#e1d5e7;strokeColor=#9673a6;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="60" width="250" height="128" as="geometry" />
+        </mxCell>
+        <mxCell id="18" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="17">
+          <mxGeometry x="0" y="52" width="250" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="19" value="+ can_read(user_id, note): bool  {static}&#10;+ can_update(user_id, note): bool  {static}&#10;+ can_delete(user_id, note): bool  {static}" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="17">
+          <mxGeometry x="0" y="60" width="250" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="20" value="VersionHistory" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="340" width="250" height="134" as="geometry" />
+        </mxCell>
+        <mxCell id="21" value="- _repo: AbstractNoteRepository" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="20">
+          <mxGeometry x="0" y="30" width="250" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="22" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="20">
+          <mxGeometry x="0" y="58" width="250" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="23" value="+ add_entry(note, change_type, actor_id): None&#10;+ get_history(note_id): list&#10;+ revert(note_id, version, actor_id): Note" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="20">
+          <mxGeometry x="0" y="66" width="250" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="24" value="VersionEntry" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="580" width="250" height="174" as="geometry" />
+        </mxCell>
+        <mxCell id="25" value="+ note_id: str&#10;+ version: int&#10;+ data: dict  &lt;&lt;snapshot&gt;&gt;&#10;+ change_type: str&#10;+ actor_id: str&#10;+ at: str  &lt;&lt;ISO timestamp&gt;&gt;" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="24">
+          <mxGeometry x="0" y="30" width="250" height="128" as="geometry" />
+        </mxCell>
+        <mxCell id="26" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="24">
+          <mxGeometry x="0" y="158" width="250" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="27" value="Exceptions" style="rounded=0;whiteSpace=wrap;html=0;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="760" width="600" height="310" as="geometry" />
+        </mxCell>
+        <mxCell id="28" value="AstraNotesError" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#ffe6cc;strokeColor=#d79b00;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="50" y="800" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="29" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="28">
+          <mxGeometry x="0" y="38" width="200" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="30" value="NoteNotFoundError" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="280" y="800" width="220" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="31" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="30">
+          <mxGeometry x="0" y="38" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="32" value="ValidationError" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="50" y="880" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="33" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="32">
+          <mxGeometry x="0" y="38" width="200" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="34" value="AccessDeniedError" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="280" y="880" width="220" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="35" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="34">
+          <mxGeometry x="0" y="38" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="36" value="StorageIOError" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="50" y="960" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="37" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="36">
+          <mxGeometry x="0" y="38" width="200" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="38" value="StorageCorruptionError" style="swimlane;html=0;fontStyle=1;align=center;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="280" y="960" width="220" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="39" value="" style="line;strokeColor=#000000;fillColor=none;" vertex="1" parent="38">
+          <mxGeometry x="0" y="38" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="40" value="" style="endArrow=block;endFill=0;dashed=1;html=0;" edge="1" source="9" target="6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="41" value="uses (DI)" style="endArrow=open;endSize=8;html=0;" edge="1" source="13" target="6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="42" value="enforces" style="endArrow=open;endSize=8;html=0;" edge="1" source="13" target="17" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="43" value="records via" style="endArrow=open;endSize=8;html=0;" edge="1" source="13" target="20" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="44" value="delegates to" style="endArrow=open;endSize=8;dashed=1;html=0;" edge="1" source="20" target="6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="45" value="stores *" style="endArrow=open;endSize=8;startArrow=diamond;startFill=1;html=0;" edge="1" source="6" target="2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="46" value="produces *" style="endArrow=open;endSize=8;startArrow=diamond;startFill=1;html=0;" edge="1" source="20" target="24" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="47" value="" style="endArrow=block;endFill=0;html=0;" edge="1" source="30" target="28" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="48" value="" style="endArrow=block;endFill=0;html=0;" edge="1" source="32" target="28" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="49" value="" style="endArrow=block;endFill=0;html=0;" edge="1" source="34" target="28" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="50" value="" style="endArrow=block;endFill=0;html=0;" edge="1" source="36" target="28" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="51" value="" style="endArrow=block;endFill=0;html=0;" edge="1" source="38" target="28" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,19 @@
+# AstraNotes runtime dependencies
+# Install: pip install -r requirements.txt
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# Database ORM
+sqlalchemy==2.0.35
+
+# Authentication
+pyjwt==2.9.0
+passlib[bcrypt]==1.7.4
+
+# Pydantic (bundled with FastAPI, pinned for stability)
+pydantic==2.9.2
+
+# Static file serving (required by FastAPI StaticFiles)
+aiofiles==24.1.0

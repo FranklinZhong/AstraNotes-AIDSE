@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="21.0.0" type="device">
+  <diagram id="page-2" name="3. Use Case Diagram">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="960" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="AstraNotes System" style="rounded=0;whiteSpace=wrap;html=0;fillColor=#f9f9f9;strokeColor=#333333;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="20" width="1360" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="User" style="shape=actor;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="30" y="380" width="60" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="Create Note" style="ellipse;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="70" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="View Note" style="ellipse;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="180" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="Edit Note" style="ellipse;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="290" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="Delete Note" style="ellipse;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="400" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="Mark Note as Private" style="ellipse;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="620" y="70" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="9" value="List Notes" style="ellipse;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="620" y="180" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="10" value="View Version History" style="ellipse;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="620" y="290" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="Revert Note to&#10;Previous Version" style="ellipse;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="620" y="400" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="" style="endArrow=open;endSize=8;html=0;" edge="1" source="3" target="4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="13" value="" style="endArrow=open;endSize=8;html=0;" edge="1" source="3" target="5" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="14" value="" style="endArrow=open;endSize=8;html=0;" edge="1" source="3" target="6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="15" value="" style="endArrow=open;endSize=8;html=0;" edge="1" source="3" target="7" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="16" value="" style="endArrow=open;endSize=8;html=0;" edge="1" source="3" target="8" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="17" value="" style="endArrow=open;endSize=8;html=0;" edge="1" source="3" target="9" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="18" value="" style="endArrow=open;endSize=8;html=0;" edge="1" source="3" target="10" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="19" value="" style="endArrow=open;endSize=8;html=0;" edge="1" source="3" target="11" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="20" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;endSize=8;dashed=1;html=0;" edge="1" source="6" target="5" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="21" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;endSize=8;dashed=1;html=0;" edge="1" source="11" target="10" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="22" value="Edit Note: PrivacyPolicy.can_update()  |  author_id == user_id required" style="shape=note;whiteSpace=wrap;html=0;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="930" y="50" width="570" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="23" value="Delete Note: PrivacyPolicy.can_delete()  |  author_id == user_id required" style="shape=note;whiteSpace=wrap;html=0;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="930" y="155" width="570" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="24" value="Mark Private: access-control-only  |  SZ-06 encryption decision still open" style="shape=note;whiteSpace=wrap;html=0;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="930" y="260" width="570" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="25" value="View Note: public notes readable by any user;&#10;private notes restricted to author via can_read()" style="shape=note;whiteSpace=wrap;html=0;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="930" y="365" width="570" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

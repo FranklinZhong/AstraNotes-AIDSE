@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="21.0.0" type="device">
+  <diagram id="page-1" name="2. Object Diagram">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1350" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="service1 : NoteService" style="swimlane;html=0;fontStyle=4;align=center;startSize=28;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="490" y="30" width="290" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="_repo = repo1&#10;_policy = policy1&#10;_history = history1" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="2">
+          <mxGeometry x="0" y="28" width="290" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="policy1 : PrivacyPolicy" style="swimlane;html=0;fontStyle=4;align=center;startSize=28;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="70" y="230" width="250" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="(no instance fields)" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="4">
+          <mxGeometry x="0" y="28" width="250" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="history1 : VersionHistory" style="swimlane;html=0;fontStyle=4;align=center;startSize=28;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="230" width="250" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="_repo = repo1" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="6">
+          <mxGeometry x="0" y="28" width="250" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="repo1 : JsonFileNoteRepository" style="swimlane;html=0;fontStyle=4;align=center;startSize=28;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="450" y="390" width="320" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="9" value="_filepath = &quot;astranotes_data.json&quot;" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="8">
+          <mxGeometry x="0" y="28" width="320" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="10" value="note1 : Note" style="swimlane;html=0;fontStyle=4;align=center;startSize=28;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="100" y="600" width="330" height="146" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="id = &quot;uuid-001&quot;&#10;title = &quot;Week4 Lab Notes&quot;&#10;body = &quot;Updated UML content&quot;&#10;visibility = &quot;public&quot;&#10;author_id = &quot;user-1&quot;&#10;version = 2" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="10">
+          <mxGeometry x="0" y="28" width="330" height="118" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="entry1 : VersionEntry" style="swimlane;html=0;fontStyle=4;align=center;startSize=28;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="620" y="600" width="290" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="13" value="note_id = &quot;uuid-001&quot;&#10;version = 1&#10;change_type = &quot;create&quot;&#10;actor_id = &quot;user-1&quot;" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="12">
+          <mxGeometry x="0" y="28" width="290" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="14" value="entry2 : VersionEntry" style="swimlane;html=0;fontStyle=4;align=center;startSize=28;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="940" y="600" width="290" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="15" value="note_id = &quot;uuid-001&quot;&#10;version = 2&#10;change_type = &quot;update&quot;&#10;actor_id = &quot;user-1&quot;" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;overflow=hidden;whiteSpace=wrap;" vertex="1" parent="14">
+          <mxGeometry x="0" y="28" width="290" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="16" value="Atomic write:&#10;temp file → fsync → os.replace&#10;Keeps 3 rolling backups (.bak.1–.bak.3)" style="shape=note;whiteSpace=wrap;html=0;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="100" y="820" width="330" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="17" value="enforces policy via" style="endArrow=open;endSize=8;html=0;" edge="1" source="2" target="4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="18" value="records change via" style="endArrow=open;endSize=8;html=0;" edge="1" source="2" target="6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="19" value="persists via" style="endArrow=open;endSize=8;html=0;" edge="1" source="2" target="8" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="20" value="snapshot stored in" style="endArrow=open;endSize=8;html=0;" edge="1" source="6" target="8" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="21" value="stores" style="endArrow=open;endSize=8;html=0;" edge="1" source="8" target="10" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="22" value="v1 snapshot" style="endArrow=open;endSize=8;html=0;" edge="1" source="6" target="12" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="23" value="v2 snapshot" style="endArrow=open;endSize=8;html=0;" edge="1" source="6" target="14" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AstraNotes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .note-item { cursor: pointer; transition: background 0.15s; }
+    .note-item:hover { background-color: #EEF2FF; }
+    .note-item.active { background-color: #E0E7FF; border-left: 3px solid #6366F1; }
+    #note-body { resize: vertical; min-height: 240px; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+<!-- ── Login / Register Section ── -->
+<section id="login-section" class="hidden min-h-screen flex items-center justify-center">
+  <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+    <div class="text-center mb-6">
+      <div class="text-3xl font-bold text-indigo-600 mb-1">&#10022; AstraNotes</div>
+      <p class="text-slate-500 text-sm">Your secure note space</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b mb-6">
+      <button id="tab-login" onclick="switchTab('login')"
+        class="flex-1 py-2 text-sm font-medium text-indigo-600 border-b-2 border-indigo-600">
+        Login
+      </button>
+      <button id="tab-register" onclick="switchTab('register')"
+        class="flex-1 py-2 text-sm font-medium text-slate-400 border-b-2 border-transparent">
+        Register
+      </button>
+    </div>
+
+    <!-- Form -->
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+        <input id="auth-username" type="text" placeholder="Enter username"
+          class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+        <input id="auth-password" type="password" placeholder="Enter password"
+          class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      </div>
+      <p id="auth-error" class="text-red-500 text-sm hidden"></p>
+      <button id="auth-submit" onclick="handleAuthSubmit()"
+        class="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition">
+        Sign In
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ── App Section ── -->
+<section id="app-section" class="hidden flex flex-col h-screen">
+  <!-- Header -->
+  <header class="bg-white border-b px-6 py-3 flex items-center justify-between shadow-sm">
+    <div class="text-xl font-bold text-indigo-600">&#10022; AstraNotes</div>
+    <div class="flex items-center gap-4">
+      <span class="text-sm text-slate-500">Welcome, <span id="header-username" class="font-medium text-slate-700"></span></span>
+      <button onclick="logout()" class="text-sm text-slate-500 hover:text-red-500 transition">Logout</button>
+    </div>
+  </header>
+
+  <!-- Body -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r flex flex-col">
+      <div class="p-4 border-b">
+        <button onclick="createNote()"
+          class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition">
+          + New Note
+        </button>
+      </div>
+      <div id="note-list" class="flex-1 overflow-y-auto py-2">
+        <!-- Notes rendered here -->
+      </div>
+    </aside>
+
+    <!-- Editor -->
+    <main class="flex-1 p-6 overflow-y-auto bg-slate-50">
+      <div id="editor-placeholder" class="flex flex-col items-center justify-center h-full text-slate-400">
+        <div class="text-5xl mb-3">&#128221;</div>
+        <p class="text-lg font-medium">Select a note to edit</p>
+        <p class="text-sm">or click <strong>+ New Note</strong> to create one</p>
+      </div>
+
+      <div id="editor-panel" class="hidden max-w-2xl">
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Title</label>
+          <input id="note-title" type="text" placeholder="Note title"
+            class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Body</label>
+          <textarea id="note-body" placeholder="Write your note here..."
+            class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-700"></textarea>
+        </div>
+
+        <div class="mb-6 flex items-center gap-3">
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Visibility</label>
+          <select id="note-visibility"
+            class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <option value="private">&#128274; Private</option>
+            <option value="public">&#127758; Public</option>
+          </select>
+          <span id="note-meta" class="text-xs text-slate-400 ml-auto"></span>
+        </div>
+
+        <div class="flex gap-3">
+          <button onclick="saveNote()"
+            class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">
+            Save Changes
+          </button>
+          <button onclick="deleteNote()"
+            class="bg-red-500 text-white px-5 py-2 rounded-lg font-medium hover:bg-red-600 transition">
+            Delete Note
+          </button>
+          <span id="save-status" class="self-center text-sm text-green-600 font-medium hidden"></span>
+        </div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────
+let token = localStorage.getItem('astranotes_token');
+let currentUser = localStorage.getItem('astranotes_user');
+let currentNoteId = null;
+let notes = [];
+let authMode = 'login';  // 'login' or 'register'
+
+// ── Bootstrap ────────────────────────────────────────────────────────────
+window.onload = () => {
+  if (token) {
+    showApp();
+  } else {
+    showLogin();
+  }
+};
+
+// ── Section Control ──────────────────────────────────────────────────────
+function showLogin() {
+  document.getElementById('login-section').classList.remove('hidden');
+  document.getElementById('app-section').classList.add('hidden');
+}
+
+function showApp() {
+  document.getElementById('login-section').classList.add('hidden');
+  document.getElementById('app-section').classList.remove('hidden');
+  document.getElementById('header-username').textContent = currentUser || '';
+  loadNotes();
+}
+
+function switchTab(mode) {
+  authMode = mode;
+  const loginTab = document.getElementById('tab-login');
+  const registerTab = document.getElementById('tab-register');
+  const submitBtn = document.getElementById('auth-submit');
+  const activeClass = ['text-indigo-600', 'border-indigo-600'];
+  const inactiveClass = ['text-slate-400', 'border-transparent'];
+
+  if (mode === 'login') {
+    loginTab.classList.add(...activeClass);
+    loginTab.classList.remove(...inactiveClass);
+    registerTab.classList.remove(...activeClass);
+    registerTab.classList.add(...inactiveClass);
+    submitBtn.textContent = 'Sign In';
+  } else {
+    registerTab.classList.add(...activeClass);
+    registerTab.classList.remove(...inactiveClass);
+    loginTab.classList.remove(...activeClass);
+    loginTab.classList.add(...inactiveClass);
+    submitBtn.textContent = 'Create Account';
+  }
+  clearAuthError();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function clearAuthError() {
+  document.getElementById('auth-error').classList.add('hidden');
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────
+async function handleAuthSubmit() {
+  const username = document.getElementById('auth-username').value.trim();
+  const password = document.getElementById('auth-password').value;
+  clearAuthError();
+
+  if (!username || !password) {
+    showAuthError('Please enter username and password.');
+    return;
+  }
+
+  const endpoint = authMode === 'login' ? '/auth/login' : '/auth/register';
+  const expectedStatus = authMode === 'login' ? 200 : 201;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, password})
+    });
+    const data = await res.json();
+    if (res.status === expectedStatus) {
+      token = data.access_token;
+      currentUser = username;
+      localStorage.setItem('astranotes_token', token);
+      localStorage.setItem('astranotes_user', currentUser);
+      document.getElementById('auth-username').value = '';
+      document.getElementById('auth-password').value = '';
+      showApp();
+    } else {
+      showAuthError(data.detail || 'Authentication failed.');
+    }
+  } catch (e) {
+    showAuthError('Connection error. Is the server running?');
+  }
+}
+
+function logout() {
+  token = null;
+  currentUser = null;
+  currentNoteId = null;
+  notes = [];
+  localStorage.removeItem('astranotes_token');
+  localStorage.removeItem('astranotes_user');
+  showLogin();
+}
+
+// ── API Helper ───────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const headers = {'Content-Type': 'application/json'};
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  try {
+    const res = await fetch(path, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined
+    });
+    if (res.status === 401) { logout(); return null; }
+    return res;
+  } catch (e) {
+    console.error('API error:', e);
+    return null;
+  }
+}
+
+// ── Notes ─────────────────────────────────────────────────────────────────
+async function loadNotes() {
+  const res = await api('GET', '/notes/');
+  if (!res) return;
+  const data = await res.json();
+  notes = data.notes || [];
+  renderNoteList();
+}
+
+function renderNoteList() {
+  const container = document.getElementById('note-list');
+  if (notes.length === 0) {
+    container.innerHTML = '<p class="text-center text-slate-400 text-sm py-8">No notes yet.<br>Click + New Note</p>';
+    return;
+  }
+  container.innerHTML = notes.map(n => `
+    <div class="note-item px-4 py-3 ${n.id === currentNoteId ? 'active' : ''}"
+         onclick="selectNote('${n.id}')">
+      <div class="text-sm font-medium text-slate-700 truncate">${escapeHtml(n.title)}</div>
+      <div class="text-xs text-slate-400 mt-0.5">${n.visibility === 'private' ? '&#128274;' : '&#127758;'} ${formatDate(n.updated_at)}</div>
+    </div>
+  `).join('');
+}
+
+async function createNote() {
+  const res = await api('POST', '/notes/', {title: 'New Note', body: '', visibility: 'private'});
+  if (!res || res.status !== 201) return;
+  const note = await res.json();
+  notes.unshift(note);
+  currentNoteId = note.id;
+  renderNoteList();
+  loadEditor(note);
+}
+
+async function selectNote(id) {
+  const res = await api('GET', `/notes/${id}`);
+  if (!res || !res.ok) return;
+  const note = await res.json();
+  currentNoteId = id;
+  renderNoteList();
+  loadEditor(note);
+}
+
+function loadEditor(note) {
+  document.getElementById('editor-placeholder').classList.add('hidden');
+  document.getElementById('editor-panel').classList.remove('hidden');
+  document.getElementById('note-title').value = note.title;
+  document.getElementById('note-body').value = note.body || '';
+  document.getElementById('note-visibility').value = note.visibility;
+  document.getElementById('note-meta').textContent = `v${note.version} · ${formatDate(note.updated_at)}`;
+  document.getElementById('save-status').classList.add('hidden');
+}
+
+async function saveNote() {
+  if (!currentNoteId) return;
+  const title = document.getElementById('note-title').value.trim();
+  const body  = document.getElementById('note-body').value;
+  const visibility = document.getElementById('note-visibility').value;
+  if (!title) { alert('Title cannot be empty.'); return; }
+
+  const res = await api('PATCH', `/notes/${currentNoteId}`, {title, body, visibility});
+  if (!res || !res.ok) return;
+  const updated = await res.json();
+
+  // Update local state
+  const idx = notes.findIndex(n => n.id === currentNoteId);
+  if (idx !== -1) notes[idx] = updated;
+
+  renderNoteList();
+  loadEditor(updated);
+
+  const status = document.getElementById('save-status');
+  status.textContent = '✓ Saved';
+  status.classList.remove('hidden');
+  setTimeout(() => status.classList.add('hidden'), 2000);
+}
+
+async function deleteNote() {
+  if (!currentNoteId) return;
+  if (!confirm('Delete this note? This cannot be undone.')) return;
+
+  const res = await api('DELETE', `/notes/${currentNoteId}`);
+  if (!res || res.status !== 204) return;
+
+  notes = notes.filter(n => n.id !== currentNoteId);
+  currentNoteId = null;
+  renderNoteList();
+
+  document.getElementById('editor-placeholder').classList.remove('hidden');
+  document.getElementById('editor-panel').classList.add('hidden');
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────
+function escapeHtml(text) {
+  return (text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatDate(isoStr) {
+  if (!isoStr) return '';
+  try {
+    return new Date(isoStr).toLocaleDateString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+  } catch (e) { return isoStr; }
+}
+
+// Enter key submit on auth form
+document.addEventListener('DOMContentLoaded', () => {
+  ['auth-username', 'auth-password'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleAuthSubmit();
+    });
+  });
+});
+</script>
+</body>
+</html>

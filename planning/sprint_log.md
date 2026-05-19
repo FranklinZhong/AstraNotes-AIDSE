@@ -1,0 +1,275 @@
+# AstraNotes — Sprint Log
+
+**Project:** AstraNotes — A Secure, Modular Note-Taking System  
+
+> One entry per Sprint. Add Planning, Review, and Retrospective at the appropriate time.
+> Use `backlog.md` to track individual task status.
+
+---
+
+## Sprint 0 — Week 1 (2026-03-30 to 2026-04-01)
+
+**Focus:** Project setup — architecture decisions, initial requirements baseline
+
+### Sprint Goal
+Establish the AstraNotes architecture and produce a requirements baseline that can guide
+the rest of the quarter.
+
+### Completed
+- Architecture Decision Log (3 prompt rounds: weak → strong → refined)
+- Initial requirements baseline: FR-1–FR-6, NFR-1–NFR-2, SG-1–SG-2 (10 requirements)
+- Code scaffold: `AstraNotes_v1/` with note model, repository interface, service,
+  privacy policy, version history, and 5 test files
+
+### Session Logs
+| Date | Planned | Completed | Blocked |
+|------|---------|-----------|---------|
+| 2026-03-30 | Waterfall Gantt + FBI Sentinel analysis | Both done | — |
+| 2026-04-01 | ADL + requirements baseline + v1 scaffold | All done | — |
+
+### Sprint Review
+All Sprint 0 deliverables pass the Definition of Done:
+- ADL traces each design decision to a prompt round with explicit reasoning
+- All 10 requirements are in testable "The system shall..." form with backlog/test links
+- Code scaffold compiles and all 5 test files run (may not all pass yet)
+
+### Retrospective
++ **What worked:** Iterating prompts (weak → strong → refined) produced a significantly
+  better architecture than a single prompt would have.
+- **Improve next Sprint:** Requirements need more specificity on access-control rules
+  before implementation can begin (gap identified in Sprint 1 planning).
+
+---
+
+## Sprint 1 — Week 2.1 (2026-04-06)
+
+**Focus:** Project governance — Working Agreement, Definition of Done, Product Backlog
+
+### Sprint Goal
+Establish the working process for the rest of the project — how work is planned, how AI
+is used, and what "done" means for every task.
+
+### Completed
+- `working_agreement.md` — 7 agreements covering Sprint cadence, AI usage, prompt logging,
+  backlog discipline, duplication prevention, and quality gate
+- `definition_of_done.md` — 7 conditions with AstraNotes-specific acceptance criteria
+- `backlog.md` — 10 user stories mapped from requirements, prioritized, Sprint-allocated
+- `sprint_log.md` — this file (Sprint 0 retrospective + Sprint 1 entry)
+- s: Working Agreement (Part 1) + Definition of Done (Part 2)
+
+### Session Logs
+| Date | Planned | Completed | Blocked |
+|------|---------|-----------|---------|
+| 2026-04-06 | 
+### Sprint Review
+- Working Agreement: 7 conditions, all AstraNotes-specific, zero copied from template
+- Definition of Done: 7 conditions, all traceable to architecture layers and requirement IDs
+- Backlog: 10 stories, prioritized, Sprint-allocated through Week 10
+
+### Retrospective
++ **What worked:** Writing tests for the lab content before finalizing caught gaps early
+  (missing Sprint/Retro terms, word count issues, copied content from sample).
+- **Improve next Sprint:** Need to add specificity to SG-1 before Sprint 8 — the access
+  control rules (what counts as unauthorized, which error type, where the check lives)
+  are not yet written down precisely enough to implement.
+
+---
+
+## Sprint 2 — Week 2.2 (2026-04-08) — COMPLETED
+
+**Focus:** AI-native planning — user stories, backlog, Sprint Zero plan
+
+### Sprint Goal
+Produce the full planning baseline: user stories with acceptance criteria, prioritized backlog, and Sprint Zero execution plan.
+
+### Completed
+- `planning/user-stories.md` — US-01 to US-06, each with 3 acceptance criteria
+- `planning/backlog.md` — prioritized backlog (High/Medium/Low), Sprint allocation
+- `planning/sprint-zero-plan.md` — SZ-01 to SZ-07, each with "Done when" condition
+
+### Session Logs
+| Date | Planned | Completed | Blocked |
+|------|---------|-----------|---------|
+| 2026-04-08 | User stories + backlog + sprint zero plan | All done | — |
+
+### Sprint Review
+- 6 user stories, all traceable to FR/GOV requirement IDs
+- Backlog has explicit prioritization rationale (persistence before edit; privacy design before storage code)
+- Sprint Zero plan has zero feature implementation items — setup only
+
+### Retrospective
++ **What worked:** Tracing each user story to a requirement ID made the backlog defensible and easy to review.
+- **Improve next Sprint:** Requirements still have ambiguous terms (quickly, responsive, appropriate) — Week 3.1 will address this.
+
+---
+
+## Sprint 3 — Week 3.1 (2026-04-13) — COMPLETED
+
+**Focus:** Requirements Engineering — ambiguity review, edge case analysis, refined requirement baseline
+
+### Sprint Goal
+Strengthen the Week 1.2 / 2.2 requirement set by identifying vague language, separating functional from non-functional requirements, and pressure-testing with edge cases using AI assistance.
+
+### Completed
+- `planning/requirements.md` — updated with refined baseline alongside preserved original (Week 3.1 section added)
+- Key changes to requirements:
+  - FR-01 to FR-07: failure behaviors and validation rules made explicit
+  - NFR-01: scoped to <500 notes (previously undefined "large")
+  - NFR-02: interface boundaries specified
+  - NFR-03: new — GOV-02 reclassified as reliability non-functional requirement
+  - GOV-01: enforcement point (service layer) and mechanism (ADL) specified
+  - GOV-03 / GOV-04: coverage and record-keeping requirements made specific
+  - 6 explicit scope assumptions added (single-user, text-only, local-first, etc.)
+
+### Session Logs
+| Date | Planned | Completed | Blocked |
+|------|---------|-----------|---------|
+| 2026-04-13 | Ambiguity review + refined requirements + lab submission | All done | — |
+
+### Sprint Review
+All 7 Definition of Done conditions satisfied:
+1. Traceability — all refined requirements retain FR/NFR/GOV IDs
+2. Self-explainable — every change has a documented reason
+3. Architecture fit — requirements still map to service/policy/repository layers
+4. Validated — 6 AI sessions pressure-tested ambiguity and edge cases
+5. Security/privacy — GOV-01 and NFR-03 failure paths explicitly specified
+6. Buildable foundation — refined baseline ready to guide Week 4 UML design
+7. Sprint Review ready — each requirement change can be explained from memory
+
+### Retrospective
++ **What worked:** Using AI specifically as a critic ("would two engineers build the same thing?") surfaced ambiguities that weren't obvious from reading the requirements alone.
+- **Improve next Sprint:** Some requirements (especially GOV-01 privacy mechanism) still defer to the ADL — the actual design decision needs to be locked down before Week 4 UML work begins.
+
+---
+
+## Sprint 4 — Week 3.2 + Week 4 (2026-04-14 to 2026-04-22) — COMPLETED
+
+**Focus:** Governance review + UML design package
+
+### Sprint Goal
+Complete the governance and ethics review, apply its conclusions to project artifacts, and produce a full UML design package (class / object / use case / activity / deployment diagrams).
+
+### Completed
+- `architecture_decision_log.md` — Week 3.2 additions: pytest dev dependency, SZ-06 open decision, G-01~G-06 governance gaps, 4 AI data handling rules
+- `working_agreement.md` — Agreement 8-10 added (AI synthetic data, code verification checklist, privacy disclosure discipline)
+- `backlog.md` — GOV-B-01~05 governance backlog items added
+- `planning/DESIGN.md` — authoritative design reference created from UML package
+
+### Session Logs
+| Date | Planned | Completed | Blocked |
+|------|---------|-----------|---------|
+| 2026-04-14 | Governance review memo + ADL/WA/Backlog updates | All done | — |
+| 2026-04-21 | v4.1 artifact PlantUML + Draw.io + Written Rationale | All done | — |
+| 2026-04-22 | v4.2 artifact Draw.io v2 (html=0 rendering fix) | All done | — |
+
+### Sprint Review
+All Definition of Done conditions satisfied:
+1. Each UML diagram traces back to specific FR/NFR/GOV requirement IDs
+2. Written Rationale explains design choices (atomic write, interface separation, privacy-at-service-layer) without referencing the AI session
+3. All diagrams are cross-consistent (class names match across all 5 diagram types)
+4. Governance gaps G-01~G-06 documented with target sprints
+5. SZ-06 open decision formally recorded in ADL
+
+### Retrospective
++ **What worked:** The 3-layer architecture (Service → Policy/History → Repository) proved stable across all 5 diagram types — no contradictions found during v4.2 artifact review.
+- **Improve next Sprint:** 3 gold-plating items identified (`author_id`, `tags`, UC7/UC8) need explicit decisions before implementation — carried into Week 5 traceability audit.
+
+---
+
+## Sprint 5 — Week 5 (2026-04-26 to 2026-04-29) — COMPLETED
+
+**Focus:** Design validation, requirements-to-UML traceability audit, Midterm 1
+
+### Sprint Goal
+Validate that the Week 4 UML design actually supports the Week 3.1 refined requirements. Identify gaps before implementation begins.
+
+### Completed
+- `planning/TRACEABILITY.md` — full traceability audit results stored in project
+- `planning/DESIGN.md` — "Known Design Issues" section added: Issues 1-5 from audit
+- Midterm 1 completed 2026-04-29 (25 questions, Week 1.1–5.1 scope)
+- 90-question practice bank generated (`Mid-Term1/practice_questions.md`)
+
+### Session Logs
+| Date | Planned | Completed | Blocked |
+|------|---------|-----------|---------|
+| 2026-04-27 | Traceability matrix + TRACEABILITY.md | All done | — |
+| 2026-04-28 | Midterm 1 practice questions (90 items) | All done | — |
+| 2026-04-29 | Midterm 1 exam | Completed | — |
+
+### Sprint Review
+Traceability audit findings:
+- FR-05, NFR-02: **Fully Traced** — atomic write and interface separation well-supported
+- FR-01, FR-02, NFR-03, GOV-01: **Partially Traced** — structural support strong; behavioral coverage incomplete
+- FR-04: **Weakly Traced** — SZ-06 still open at time of audit
+- 3 gold-plating UML elements identified (author_id, tags, UC7/UC8)
+
+### Retrospective
++ **What worked:** Systematically checking each requirement against all 4 diagram types caught the FR-01 body-validation contradiction that would have caused a bug in Sprint 1 implementation.
+- **Improve next Sprint:** SZ-06 must be resolved before any FR-04 / GOV-01 implementation. Also need GOV-B-02 checklist and GOV-B-04 threat scope before Sprint 1 coding begins.
+
+---
+
+## Sprint 6 — Week 6 (2026-05-03 to present) — IN PROGRESS
+
+**Focus:** Pre-implementation cleanup + first implementation slice (Class 2)
+
+### Sprint Goal
+Close all Sprint 1 prerequisites (SZ-06, GOV-B-02~05, design issue decisions), then build the App Shell and first 1-2 feature slices as Sprint6 deliverable deliverable.
+
+### Completed (Class 1 pre-work, 2026-05-05)
+- **SZ-06 decision**: Option A — access-control-only; formal entry in `architecture_decision_log.md`
+- **DESIGN.md**: All 4 open design issues resolved (author_id → hardcoded sentinel; tags → not in service API; VersionHistory → internal-only; activity diagram gaps → flows inferred)
+- **GOV-B-02**: `planning/ai_code_validation_checklist.md` created (25-item checklist)
+- **GOV-B-03**: SZ-06 decision written into ADL
+- **GOV-B-04**: `planning/threat_scope_statement.md` created
+- **GOV-B-05**: Single-user constraint recorded in ADL + DESIGN.md
+- **FR-01 bug fix**: `note.py` body validation corrected — empty body now valid (2026-05-05)
+- **`note_service.py`**: `body` parameter default set to `""` (optional per FR-01)
+- All planning files moved to `planning/` directory; per-week summary MDs created (Week 1-6)
+- 29 tests passing after FR-01 fix
+
+### Pending (Class 2)
+- [ ] Confirm app direction (CLI recommended — consistent with existing Python stack)
+- [ ] Build App Shell (entry point, menu, command dispatcher)
+- [ ] Implement feature slice 1: `create_note` end-to-end with CLI
+- [ ] Implement feature slice 2: `list_notes` or `get_note` with CLI
+- [ ] Write Sprint6 deliverable PDF (6 sections: direction, structure, shell, slices, traceability, AI reflection)
+
+### Session Logs
+| Date | Planned | Completed | Blocked |
+|------|---------|-----------|---------|
+| 2026-05-03 | Week 6.1 translation | Done | — |
+| 2026-05-05 | Pre-implementation doc cleanup + code fix | Done | — |
+| Class 2 | App Shell + Sprint6 deliverable slices | Pending | — |
+
+### Sprint Review
+*To be completed after Class 2.*
+
+### Retrospective
+*To be completed after Class 2.*
+
+---
+
+## Sprint Template (copy for each new Sprint)
+
+```markdown
+## Sprint N — Week X (YYYY-MM-DD to YYYY-MM-DD)
+
+**Focus:** 
+
+### Sprint Goal
+
+### Completed
+-
+
+### Session Logs
+| Date | Planned | Completed | Blocked |
+|------|---------|-----------|---------|
+| | | | |
+
+### Sprint Review
+
+### Retrospective
++ **What worked:** 
+- **Improve next Sprint:** 
+```
