@@ -31,6 +31,21 @@ def test_note_empty_title_raises():
         Note(title="", body="b", author_id="user1")
 
 
+def test_note_whitespace_only_title_raises():
+    with pytest.raises(ValidationError):
+        Note(title="   ", body="b", author_id="user1")
+
+
+def test_note_tab_only_title_raises():
+    with pytest.raises(ValidationError):
+        Note(title="\t", body="b", author_id="user1")
+
+
+def test_note_newline_only_title_raises():
+    with pytest.raises(ValidationError):
+        Note(title="\n", body="b", author_id="user1")
+
+
 def test_note_empty_body_allowed():
     # FR-01: body is optional; empty string must be valid
     note = Note(title="t", body="", author_id="user1")
