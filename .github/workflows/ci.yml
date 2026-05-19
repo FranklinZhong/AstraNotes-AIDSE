@@ -38,6 +38,7 @@ jobs:
         env:
           JWT_SECRET: ci-test-secret-key
           DATABASE_URL: "sqlite:///./test_ci.db"
+          PYTHONIOENCODING: utf-8
 
       - name: Upload test results
         if: always()

@@ -46,10 +46,11 @@ from AstraNotes_v1.policies.privacy_policy import PrivacyPolicy
 
 @pytest.fixture(autouse=True)
 def reset_note_service():
-    """每个测试用独立的命名内存 SQLite 库，彻底隔离状态。
+    """Each test gets an isolated named in-memory SQLite database.
 
-    使用 URI 格式的命名内存数据库（cache=shared），确保同一测试内多个连接
-    访问同一张表，避免 sqlite:///:memory: 每连接独立的问题。
+    Uses URI-format named memory databases (cache=shared) so multiple
+    connections within one test share the same table — avoids the
+    per-connection isolation of plain sqlite:///:memory:.
     """
     db_name = f"test_{uuid.uuid4().hex}"
     db_url = f"file:{db_name}?mode=memory&cache=shared&uri=true"
