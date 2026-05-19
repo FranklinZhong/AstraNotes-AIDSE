@@ -9,6 +9,7 @@ class NoteCreate(BaseModel):
     """Request body for POST /notes."""
     title: str
     body: str = ""
+    tags: List[str] = []
     visibility: str = "private"
 
     @field_validator("title")
@@ -30,6 +31,7 @@ class NoteUpdate(BaseModel):
     """Request body for PATCH /notes/{id}."""
     title: Optional[str] = None
     body: Optional[str] = None
+    tags: Optional[List[str]] = None
     visibility: Optional[str] = None
 
 
@@ -38,6 +40,7 @@ class NoteResponse(BaseModel):
     id: str
     title: str
     body: str
+    tags: List[str] = []
     visibility: str
     author_id: Optional[str]
     created_at: str
@@ -51,6 +54,7 @@ class NoteResponse(BaseModel):
             id=note.id,
             title=note.title,
             body=note.body,
+            tags=list(getattr(note, "tags", [])),
             visibility=note.visibility,
             author_id=note.author_id,
             created_at=note.created_at,

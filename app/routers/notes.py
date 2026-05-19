@@ -1,5 +1,6 @@
-"""Notes router — CRUD endpoints for /notes. Sprint 7 implementation."""
-from fastapi import APIRouter, Depends, HTTPException, Response
+"""Notes router — CRUD endpoints for /notes."""
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from typing import List, Optional
 
 from app.auth.dependencies import get_current_user
 from app.schemas.note import NoteCreate, NoteListResponse, NoteResponse, NoteUpdate
@@ -21,6 +22,7 @@ def create_note(
         author_id=user_id,
         title=body.title,
         body=body.body,
+        tags=body.tags,
         visibility=body.visibility,
     )
     return NoteResponse.from_domain(note)
@@ -30,9 +32,13 @@ def create_note(
 def list_notes(
     user_id: str = Depends(get_current_user),
     service: NoteService = Depends(get_note_service),
+    tags: Optional[List[str]] = Query(default=None, description="Filter by tags (any match)"),
 ):
-    """List all notes visible to the current user. (FR-05, US-05)"""
+    """List notes visible to the current user, optionally filtered by tags. (FR-03, US-03)"""
     notes = service.list_notes(user_id=user_id)
+    if tags:
+        tag_set = set(tags)
+        notes = [n for n in notes if tag_set.intersection(getattr(n, "tags", []))]
     return NoteListResponse(notes=[NoteResponse.from_domain(n) for n in notes], total=len(notes))
 
 
