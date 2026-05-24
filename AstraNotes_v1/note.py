@@ -55,7 +55,7 @@ class Note:
 
     def patch(self, **fields: Any) -> "Note":
         if "title" in fields and fields["title"] is not None:
-            if not isinstance(fields["title"], str) or not fields["title"]:
+            if not isinstance(fields["title"], str) or not fields["title"].strip():
                 raise ValidationError("title must be a non-empty string")
             self.title = fields["title"]
         if "body" in fields and fields["body"] is not None:

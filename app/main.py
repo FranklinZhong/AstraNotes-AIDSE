@@ -4,12 +4,13 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.routers import auth, notes
+from app.routers import auth, notes, history
 
 app = FastAPI(title="AstraNotes API", version="1.0.0")
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(notes.router, prefix="/notes", tags=["notes"])
+app.include_router(history.router, prefix="/notes", tags=["history"])
 
 
 @app.get("/health", tags=["health"])

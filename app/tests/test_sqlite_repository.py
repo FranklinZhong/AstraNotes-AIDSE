@@ -110,7 +110,57 @@ def test_version_field_persisted(repo, sample_note):
 
 
 # TSQ-13
-def test_add_version_snapshot_does_not_crash(repo, sample_note):
+def test_add_version_snapshot_stores_entry(repo, sample_note):
+    """Version snapshot is persisted and readable from note_versions table."""
     repo.create(sample_note)
-    repo.add_version_snapshot(sample_note, "create", actor_id="user-alice")  # must not raise
-    # no assertion needed, just verifying no exception
+    repo.add_version_snapshot(sample_note, "create", actor_id="user-alice")
+    versions = repo.get_versions(sample_note.id)
+    assert len(versions) == 1
+    assert versions[0]["version"] == sample_note.version
+    assert versions[0]["change_type"] == "create"
+    assert versions[0]["data"]["title"] == "Test Note"
+
+
+# TSQ-14
+def test_get_versions_tracks_create_and_update(repo, sample_note):
+    """get_versions returns one entry per snapshot in chronological order."""
+    repo.create(sample_note)
+    repo.add_version_snapshot(sample_note, "create")
+    sample_note.title = "Updated"
+    sample_note.version = 2
+    repo.update(sample_note)
+    repo.add_version_snapshot(sample_note, "update")
+    versions = repo.get_versions(sample_note.id)
+    assert len(versions) == 2
+    assert versions[0]["change_type"] == "create"
+    assert versions[1]["change_type"] == "update"
+
+
+# TSQ-15
+def test_get_versions_empty_before_any_snapshot(repo, sample_note):
+    """No snapshots exist until add_version_snapshot is called."""
+    repo.create(sample_note)
+    assert repo.get_versions(sample_note.id) == []
+
+
+# TSQ-16
+def test_revert_to_version_restores_content(repo, sample_note):
+    """revert_to_version restores old title and increments version number."""
+    repo.create(sample_note)
+    repo.add_version_snapshot(sample_note, "create")
+    sample_note.title = "Updated Title"
+    sample_note.version = 2
+    repo.update(sample_note)
+    repo.add_version_snapshot(sample_note, "update")
+
+    reverted = repo.revert_to_version(sample_note.id, 1)
+    assert reverted.title == "Test Note"
+    assert reverted.version == 3  # new version created on top
+
+
+# TSQ-17
+def test_revert_to_nonexistent_version_raises(repo, sample_note):
+    """Reverting to a version that was never snapshotted raises NoteNotFoundError."""
+    repo.create(sample_note)
+    with pytest.raises(NoteNotFoundError):
+        repo.revert_to_version(sample_note.id, 99)

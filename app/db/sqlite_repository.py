@@ -1,7 +1,8 @@
-"""SqliteNoteRepository — SQLAlchemy Core implementation. Sprint 7."""
+"""SqliteNoteRepository — SQLAlchemy Core implementation. Sprint 7/8."""
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from sqlalchemy import (Column, Integer, MetaData, Table, Text, create_engine,
@@ -34,6 +35,16 @@ class SqliteNoteRepository(AbstractNoteRepository):
             Column("updated_at",  Text),
             Column("version",     Integer, default=1),
             Column("tags",        Text, default="[]"),
+        )
+        self._versions = Table(
+            "note_versions", meta,
+            Column("id",          Integer, primary_key=True, autoincrement=True),
+            Column("note_id",     Text, nullable=False),
+            Column("version",     Integer, nullable=False),
+            Column("data",        Text, nullable=False),
+            Column("change_type", Text, nullable=False),
+            Column("actor_id",    Text),
+            Column("at",          Text),
         )
         meta.create_all(self._engine)
 
@@ -119,12 +130,76 @@ class SqliteNoteRepository(AbstractNoteRepository):
     def add_version_snapshot(
         self, note: Note, change_type: str, actor_id: Optional[str] = None
     ) -> None:
-        return None  # Sprint 8 — must not raise; called by NoteService.create_note/update_note
+        with self._engine.connect() as conn:
+            conn.execute(insert(self._versions).values(
+                note_id=note.id,
+                version=note.version,
+                data=json.dumps({
+                    "id": note.id,
+                    "title": note.title,
+                    "body": note.body,
+                    "visibility": note.visibility,
+                    "author_id": note.author_id,
+                    "tags": note.tags,
+                    "version": note.version,
+                    "created_at": note.created_at,
+                    "updated_at": note.updated_at,
+                }),
+                change_type=change_type,
+                actor_id=actor_id,
+                at=datetime.now(timezone.utc).replace(microsecond=0).isoformat() + "Z",
+            ))
+            conn.commit()
 
     def get_versions(self, note_id: str) -> List[Dict]:
-        return []  # Sprint 8
+        with self._engine.connect() as conn:
+            rows = conn.execute(
+                select(self._versions)
+                .where(self._versions.c.note_id == note_id)
+                .order_by(self._versions.c.version)
+            ).fetchall()
+        return [
+            {
+                "note_id": r.note_id,
+                "version": r.version,
+                "data": json.loads(r.data),
+                "change_type": r.change_type,
+                "actor_id": r.actor_id,
+                "at": r.at or "",
+            }
+            for r in rows
+        ]
 
     def revert_to_version(
         self, note_id: str, version: int, actor_id: Optional[str] = None
     ) -> Note:
-        raise NotImplementedError("revert_to_version — Sprint 8")
+        current = self.get(note_id)  # raises NoteNotFoundError if note absent
+
+        with self._engine.connect() as conn:
+            row = conn.execute(
+                select(self._versions)
+                .where(self._versions.c.note_id == note_id)
+                .where(self._versions.c.version == version)
+            ).first()
+
+        if row is None:
+            raise NoteNotFoundError(
+                f"Version {version} of note {note_id!r} not found in history"
+            )
+
+        snapshot = json.loads(row.data)
+        restored = Note(
+            id=current.id,
+            title=snapshot["title"],
+            body=snapshot.get("body", ""),
+            visibility=snapshot.get("visibility", "private"),
+            author_id=current.author_id,
+            tags=snapshot.get("tags", []),
+            metadata={},
+            created_at=current.created_at,
+            updated_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat() + "Z",
+            version=current.version + 1,
+        )
+        self.update(restored)
+        self.add_version_snapshot(restored, "revert", actor_id=actor_id)
+        return restored

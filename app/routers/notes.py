@@ -6,7 +6,7 @@ from app.auth.dependencies import get_current_user
 from app.schemas.note import NoteCreate, NoteListResponse, NoteResponse, NoteUpdate
 from app.service_deps import get_note_service
 from AstraNotes_v1.services.note_service import NoteService
-from AstraNotes_v1.exceptions import NoteNotFoundError, AccessDeniedError
+from AstraNotes_v1.exceptions import NoteNotFoundError, AccessDeniedError, ValidationError
 
 router = APIRouter()
 
@@ -34,11 +34,16 @@ def list_notes(
     service: NoteService = Depends(get_note_service),
     tags: Optional[List[str]] = Query(default=None, description="Filter by tags (any match)"),
 ):
-    """List notes visible to the current user, optionally filtered by tags. (FR-03, US-03)"""
+    """List notes visible to the current user, optionally filtered by tags. (FR-03, US-03)
+
+    Tag filtering is AND/subset: a note is returned only if it contains ALL of the
+    requested tags. Matching is case-sensitive. Notes with no tags are excluded when
+    any tag filter is specified.
+    """
     notes = service.list_notes(user_id=user_id)
     if tags:
         tag_set = set(tags)
-        notes = [n for n in notes if tag_set.intersection(getattr(n, "tags", []))]
+        notes = [n for n in notes if tag_set.issubset(getattr(n, "tags", []))]
     return NoteListResponse(notes=[NoteResponse.from_domain(n) for n in notes], total=len(notes))
 
 
@@ -72,6 +77,7 @@ def update_note(
             note_id=note_id,
             title=body.title,
             body=body.body,
+            tags=body.tags,
             visibility=body.visibility,
         )
         return NoteResponse.from_domain(note)
@@ -79,6 +85,8 @@ def update_note(
         raise HTTPException(status_code=404, detail=f"Note {note_id!r} not found")
     except AccessDeniedError:
         raise HTTPException(status_code=403, detail="Access denied")
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @router.delete("/{note_id}", status_code=204)
