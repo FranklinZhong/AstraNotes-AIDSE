@@ -35,6 +35,18 @@ def _get_engine():
     return _engine
 
 
+def verify_user_password(username: str, password: str) -> bool:
+    """Return True if username exists and password matches stored hash."""
+    eng = _get_engine()
+    with eng.connect() as conn:
+        row = conn.execute(
+            select(_users_table).where(_users_table.c.username == username)
+        ).first()
+    if not row:
+        return False
+    return pwd_context.verify(password, row._mapping["hashed_password"])
+
+
 def _reset_users_for_test(url: str = "sqlite:///:memory:") -> None:
     """Test helper: replace engine with a fresh isolated in-memory one.
 

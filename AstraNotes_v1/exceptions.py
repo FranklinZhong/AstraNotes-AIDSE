@@ -20,3 +20,7 @@ class StorageIOError(AstraNotesError, IOError):
 
 class StorageCorruptionError(AstraNotesError, ValueError):
     """Raised when storage data appears corrupted."""
+
+
+class WrongNotePasswordError(AstraNotesError):
+    """Raised when the provided note password does not match the stored hash."""

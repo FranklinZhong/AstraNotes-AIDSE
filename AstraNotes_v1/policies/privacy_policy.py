@@ -9,8 +9,8 @@ class PrivacyPolicy:
 
     @staticmethod
     def can_read(user_id: Optional[str], note: Note) -> bool:
-        if note.visibility == "public":
-            return True
+        # All notes (public and private) are owner-only.
+        # "public" vs "private" controls whether an extra note password is required.
         if user_id is not None and user_id == note.author_id:
             return True
         raise AccessDeniedError("Read access denied")

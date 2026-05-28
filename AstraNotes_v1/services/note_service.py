@@ -22,10 +22,11 @@ class NoteService:
         self,
         author_id: str,
         title: str,
-        body: str = "",  # FR-01: body is optional
+        body: str = "",
         tags: Optional[List[str]] = None,
         metadata: Optional[Dict] = None,
-        visibility: str = "private",
+        visibility: str = "public",
+        note_password_hash: Optional[str] = None,
     ) -> Note:
         note = Note(
             title=title,
@@ -34,6 +35,7 @@ class NoteService:
             metadata=metadata or {},
             visibility=visibility,
             author_id=author_id,
+            note_password_hash=note_password_hash,
         )
         created = self.repository.create(note)
         self.version_history.add_entry(created, "create", actor_id=author_id)
@@ -45,15 +47,11 @@ class NoteService:
         return note
 
     def list_notes(self, user_id: Optional[str], filters: Optional[Dict] = None) -> List[Note]:
-        candidates = self.repository.list(filters)
-        visible = []
-        for note in candidates:
-            try:
-                self.policy.can_read(user_id, note)
-                visible.append(note)
-            except Exception:
-                continue
-        return visible
+        # Always filter to owner's notes only; merge with any extra filters.
+        all_filters: Dict = {"author_id": user_id}
+        if filters:
+            all_filters.update(filters)
+        return self.repository.list(all_filters)
 
     def update_note(self, user_id: Optional[str], note_id: str, **patch_data) -> Note:
         note = self.repository.get(note_id)
@@ -66,6 +64,9 @@ class NoteService:
             metadata=patch_data.get("metadata"),
             visibility=patch_data.get("visibility"),
         )
+        # note_password_hash is not part of Note.patch(); set directly when present.
+        if "note_password_hash" in patch_data:
+            note.note_password_hash = patch_data["note_password_hash"]
         note.version = old_version + 1
         updated = self.repository.update(note)
         self.version_history.add_entry(updated, "update", actor_id=user_id)

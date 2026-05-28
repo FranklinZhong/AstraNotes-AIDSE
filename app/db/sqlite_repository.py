@@ -26,15 +26,16 @@ class SqliteNoteRepository(AbstractNoteRepository):
         meta = MetaData()
         self._notes = Table(
             "notes", meta,
-            Column("id",          Text, primary_key=True),
-            Column("title",       Text, nullable=False),
-            Column("body",        Text, default=""),
-            Column("visibility",  Text, default="private"),
-            Column("author_id",   Text),
-            Column("created_at",  Text),
-            Column("updated_at",  Text),
-            Column("version",     Integer, default=1),
-            Column("tags",        Text, default="[]"),
+            Column("id",                 Text, primary_key=True),
+            Column("title",              Text, nullable=False),
+            Column("body",               Text, default=""),
+            Column("visibility",         Text, default="public"),
+            Column("author_id",          Text),
+            Column("created_at",         Text),
+            Column("updated_at",         Text),
+            Column("version",            Integer, default=1),
+            Column("tags",               Text, default="[]"),
+            Column("note_password_hash", Text, nullable=True),
         )
         self._versions = Table(
             "note_versions", meta,
@@ -52,32 +53,33 @@ class SqliteNoteRepository(AbstractNoteRepository):
 
     def _to_row(self, note: Note) -> Dict:
         return {
-            "id":         note.id,
-            "title":      note.title,
-            "body":       note.body,
-            "visibility": note.visibility,
-            "author_id":  note.author_id,
-            "created_at": note.created_at,
-            "updated_at": note.updated_at,
-            "version":    note.version,
-            "tags":       json.dumps(note.tags),
+            "id":                 note.id,
+            "title":              note.title,
+            "body":               note.body,
+            "visibility":         note.visibility,
+            "author_id":          note.author_id,
+            "created_at":         note.created_at,
+            "updated_at":         note.updated_at,
+            "version":            note.version,
+            "tags":               json.dumps(note.tags),
+            "note_password_hash": note.note_password_hash,
         }
 
     def _from_row(self, row) -> Note:
         d = dict(row._mapping)
         tags = json.loads(d.get("tags") or "[]")
-        # Note is a plain dataclass — all fields can be passed directly to constructor.
         return Note(
             id=d["id"],
             title=d["title"],
             body=d.get("body", ""),
-            visibility=d.get("visibility", "private"),
+            visibility=d.get("visibility", "public"),
             author_id=d.get("author_id"),
             tags=tags,
             metadata={},
             created_at=d.get("created_at", ""),
             updated_at=d.get("updated_at", ""),
             version=int(d.get("version", 1)),
+            note_password_hash=d.get("note_password_hash"),
         )
 
     # ── CRUD ───────────────────────────────────────────────────────────────

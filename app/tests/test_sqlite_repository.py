@@ -121,9 +121,16 @@ def test_add_version_snapshot_stores_entry(repo, sample_note):
     assert versions[0]["data"]["title"] == "Test Note"
 
 
-# TSQ-14
+# TSQ-14 (improved: assert on version number, not array position)
 def test_get_versions_tracks_create_and_update(repo, sample_note):
-    """get_versions returns one entry per snapshot in chronological order."""
+    """get_versions returns one entry per snapshot, keyed by version number.
+
+    Original test coupled to array position (versions[0], versions[1]).
+    If a future implementation returns newest-first, the test would fail for
+    the wrong reason — ordering is an implementation detail, version numbers
+    are the requirement (FR-06). Now asserts on version number so the test
+    passes regardless of sort order.
+    """
     repo.create(sample_note)
     repo.add_version_snapshot(sample_note, "create")
     sample_note.title = "Updated"
@@ -132,8 +139,10 @@ def test_get_versions_tracks_create_and_update(repo, sample_note):
     repo.add_version_snapshot(sample_note, "update")
     versions = repo.get_versions(sample_note.id)
     assert len(versions) == 2
-    assert versions[0]["change_type"] == "create"
-    assert versions[1]["change_type"] == "update"
+    by_version = {v["version"]: v for v in versions}
+    assert 1 in by_version and 2 in by_version
+    assert by_version[1]["change_type"] == "create"
+    assert by_version[2]["change_type"] == "update"
 
 
 # TSQ-15

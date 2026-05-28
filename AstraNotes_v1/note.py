@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
@@ -18,15 +19,17 @@ class Note:
     title: str = ""
     body: str = ""
     tags: List[str] = field(default_factory=list)
-    visibility: str = "private"  # public/private
+    visibility: str = "public"  # public=no extra password; private=password-protected
     metadata: Dict[str, Any] = field(default_factory=dict)
     author_id: Optional[str] = None
     created_at: str = field(default_factory=_now_iso)
     updated_at: str = field(default_factory=_now_iso)
     version: int = 1
+    note_password_hash: Optional[str] = None  # bcrypt hash; only set when visibility=="private"
 
     def __post_init__(self):
-        if not isinstance(self.title, str) or not self.title.strip():
+        # re.search(r'\S') catches all Unicode whitespace, not just ASCII (str.strip() misses U+00A0)
+        if not isinstance(self.title, str) or not re.search(r'\S', self.title):
             raise ValidationError("title must be a non-empty string")
         if not isinstance(self.body, str):  # FR-01: body is optional; empty string is valid
             raise ValidationError("body must be a string")
@@ -45,17 +48,18 @@ class Note:
             title=data["title"],
             body=data["body"],
             tags=list(data.get("tags", [])),
-            visibility=data.get("visibility", "private"),
+            visibility=data.get("visibility", "public"),
             metadata=data.get("metadata", {}),
             author_id=data.get("author_id"),
             created_at=data.get("created_at", _now_iso()),
             updated_at=data.get("updated_at", _now_iso()),
             version=int(data.get("version", 1)),
+            note_password_hash=data.get("note_password_hash"),
         )
 
     def patch(self, **fields: Any) -> "Note":
         if "title" in fields and fields["title"] is not None:
-            if not isinstance(fields["title"], str) or not fields["title"].strip():
+            if not isinstance(fields["title"], str) or not re.search(r'\S', fields["title"]):
                 raise ValidationError("title must be a non-empty string")
             self.title = fields["title"]
         if "body" in fields and fields["body"] is not None:

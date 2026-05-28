@@ -1,6 +1,7 @@
 """Note request and response schemas (Pydantic)."""
 from __future__ import annotations
 
+import re
 from typing import List, Optional
 from pydantic import BaseModel, field_validator
 
@@ -10,13 +11,15 @@ class NoteCreate(BaseModel):
     title: str
     body: str = ""
     tags: List[str] = []
-    visibility: str = "private"
+    visibility: str = "public"
+    note_password: Optional[str] = None  # required when visibility=="private"
 
     @field_validator("title")
     @classmethod
     def title_not_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("title must be a non-empty string")
+        # re.search(r'\S') catches all Unicode whitespace, not just ASCII (str.strip() misses U+00A0)
+        if not v or not re.search(r'\S', v):
+            raise ValueError("title must contain at least one non-whitespace character")
         return v
 
     @field_validator("visibility")
@@ -33,6 +36,7 @@ class NoteUpdate(BaseModel):
     body: Optional[str] = None
     tags: Optional[List[str]] = None
     visibility: Optional[str] = None
+    note_password: Optional[str] = None  # new note password to set (or clear when visibility→public)
 
 
 class NoteResponse(BaseModel):
@@ -46,6 +50,7 @@ class NoteResponse(BaseModel):
     created_at: str
     updated_at: str
     version: int
+    is_protected: bool = False  # True when note has a note_password_hash set
 
     @classmethod
     def from_domain(cls, note) -> "NoteResponse":
@@ -60,6 +65,7 @@ class NoteResponse(BaseModel):
             created_at=note.created_at,
             updated_at=note.updated_at,
             version=note.version,
+            is_protected=bool(getattr(note, "note_password_hash", None)),
         )
 
 
@@ -67,3 +73,8 @@ class NoteListResponse(BaseModel):
     """Response schema for GET /notes."""
     notes: List[NoteResponse]
     total: int
+
+
+class EmergencyUnlockRequest(BaseModel):
+    """Request body for POST /notes/{id}/emergency-unlock."""
+    account_password: str
