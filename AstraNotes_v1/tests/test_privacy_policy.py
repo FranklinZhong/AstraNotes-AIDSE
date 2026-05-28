@@ -5,9 +5,13 @@ from AstraNotes_v1.note import Note
 from AstraNotes_v1.exceptions import AccessDeniedError
 
 
-def test_privacy_can_read_public():
+def test_privacy_can_read_public_by_owner():
+    """Public visibility does not grant cross-user read access (ADR-WEB-01).
+    PrivacyPolicy enforces owner-only access for all notes; 'public' only controls
+    whether a note-level password is required.
+    """
     note = Note(title="t", body="b", visibility="public", author_id="user1")
-    assert PrivacyPolicy.can_read(None, note)
+    assert PrivacyPolicy.can_read("user1", note)
 
 
 def test_privacy_can_read_private_by_author():
@@ -35,6 +39,12 @@ def test_privacy_delete_denied_for_non_author():
         PrivacyPolicy.can_delete("user2", note)
 
 
-def test_privacy_can_read_none_user_public_note():
+def test_privacy_can_read_public_denied_for_non_owner():
+    """Unauthenticated and non-owner users cannot read public notes (ADR-WEB-01).
+    All note access is owner-only regardless of visibility setting.
+    """
     note = Note(title="t", body="b", visibility="public", author_id="user1")
-    assert PrivacyPolicy.can_read(None, note)
+    with pytest.raises(AccessDeniedError):
+        PrivacyPolicy.can_read(None, note)
+    with pytest.raises(AccessDeniedError):
+        PrivacyPolicy.can_read("user2", note)

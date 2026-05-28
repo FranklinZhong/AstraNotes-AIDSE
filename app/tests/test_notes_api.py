@@ -8,7 +8,7 @@ def test_us01_create_note_with_valid_title_returns_201(client, auth_headers):
     data = resp.json()
     assert data["title"] == "My Note"
     assert data["body"] == ""
-    assert data["visibility"] == "private"
+    assert data["visibility"] == "public"  # NoteCreate defaults to "public" (ADR-WEB-01)
 
 
 def test_us01_create_note_with_empty_title_returns_422(client, auth_headers):

@@ -9,7 +9,7 @@ def test_note_creation_defaults():
     assert note.id
     assert note.title == "title"
     assert note.body == "body"
-    assert note.visibility == "private"
+    assert note.visibility == "public"  # ADR-WEB-01: web multi-user default is "public"
     assert note.version == 1
 
 
@@ -65,6 +65,9 @@ def test_note_patch_updates_tags():
     assert note.tags == ["uml", "week4"]
 
 
-def test_note_default_visibility_is_private():
+def test_note_default_visibility_is_public():
+    """Domain model defaults to 'public' visibility (ADR-WEB-01 web multi-user design).
+    Visibility controls note password requirement, not cross-user read access.
+    """
     note = Note(title="t", body="b", author_id="user1")
-    assert note.visibility == "private"
+    assert note.visibility == "public"

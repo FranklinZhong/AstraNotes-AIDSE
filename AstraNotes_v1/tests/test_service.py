@@ -44,7 +44,11 @@ def test_note_service_revert():
         assert reverted.body == "b"
 
 
-def test_service_list_hides_private_from_other_user():
+def test_service_list_only_returns_own_notes():
+    """list_notes() filters by author_id — owner-only access for all notes (ADR-WEB-01).
+    Public visibility does NOT make notes cross-user visible; it only controls
+    whether a note-level password is required (see ADR-PWD-01).
+    """
     with tempfile.TemporaryDirectory() as td:
         repo = JsonFileNoteRepository(os.path.join(td, "notes.json"))
         service = NoteService(repo)
@@ -53,8 +57,7 @@ def test_service_list_hides_private_from_other_user():
         service.create_note("u1", "public note", "visible", visibility="public")
 
         visible = service.list_notes("u2")
-        assert len(visible) == 1
-        assert visible[0].title == "public note"
+        assert len(visible) == 0  # u2 sees no notes from u1; all notes are owner-only
 
 
 def test_service_mark_note_private():
