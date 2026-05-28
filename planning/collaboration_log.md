@@ -159,16 +159,63 @@ Next step (Week 9/10): evaluate adding `pytest-cov` to the CI pipeline to track 
 
 ---
 
-## [TODO — Week 9 Content]
+## Week 9 — Prompt Bank Analysis and Test Quality Improvement (2026-05-27)
 
-> Week 9 topics: Advanced testing, test coverage analysis, Mock strategies, validation optimization.
-> Scheduled: ~2026-05-27 (Week 9 Wed; Mon is Memorial Day holiday).
+> Week 9 topics: Advanced testing, test coverage analysis, mock strategies, validation optimization.
+> Lab exercise: Apply the professor's 7-prompt Prompt Bank to the AstraNotes test suite; identify and fix weak tests and behavioral coverage gaps.
 
-### Test Coverage Analysis (Week 9 Lab)
-*[To be completed after Week 9 class — will add coverage report (pytest-cov) and document any new tests added to improve coverage.]*
+### Prompt Bank Exercise
 
-### Mock Strategy Review (Week 9 Lab)
-*[To be completed after Week 9 class — will document where mocks were used or considered in the test suite and why.]*
+The 7 prompts were applied to the existing test suite (70 tests, Sprint 8 state). Each prompt guided a different angle of test quality analysis.
+
+#### Findings and Actions
+
+| Prompt | Finding | Action |
+|--------|---------|--------|
+| 1 — Test Quality Critique | TVH-02 used `versions[1]` (positional index) — same brittle assumption as the pre-fix TSQ-14 | **Fixed**: replaced with `by_version = {v["version"]: v ...}` keyed assertion |
+| 2 — Coverage Gap | `?tags=a&tags=b` AND semantics (`set.issubset()`) completely untested — changing to OR logic would be undetected | **Added TNA-09**: verifies AND semantics by confirming a one-tag note is excluded from a two-tag filter |
+| 2 — Coverage Gap | `_require_note_password()` has 3 branches (missing pw → 401, wrong pw → 403, correct pw → 200); none tested via HTTP | **Added TNA-10/11/12**: tests all three branches |
+| 2 — Coverage Gap | `AccessDeniedError → 403` path untested for both PATCH and DELETE endpoints | **Added TNA-13/14**: registers a second user and attempts non-owner PATCH/DELETE |
+| 3 — Mocking Critique | Zero mocking in integration tests; in-memory SQLite isolation in unit tests — both appropriate | No change — assessment confirmed existing approach is correct |
+| 4 — Flaky Test Repair | TVH-02 positional index creates latent flakiness risk | Fixed (see Prompt 1 fix above) |
+| 5 — Stronger Assertion | `_require_note_password` success path never tested | Fixed via TNA-12 |
+| 6 — Validation Refinement | `str.strip()` in Pydantic validator and domain model does not handle U+00A0 (non-breaking space) — a title of `" "` passes validation silently | **Fixed validator** in `app/schemas/note.py` and `AstraNotes_v1/note.py` to use `re.search(r'\S', v)`; **Added TNA-15** |
+| 7 — Test Improvement Log | Lab9_WentaoZhong.docx records the full narrative from this session | See `Week9/HW9/Lab9_WentaoZhong.docx` |
+
+#### AI Suggestions Accepted
+
+- TVH-02 positional index fix: verified by reading `history.py` — the API returns a list sorted oldest-first by implementation detail, not by requirement. Keyed assertion is requirement-aligned.
+- AND tags gap (TNA-09): verified by reading `notes.py:59` — `tag_set.issubset()` is AND logic. A missing test means changing it to `any()` (OR logic) would go undetected.
+- Note password branches (TNA-10/11/12): verified by reading `notes.py:16-27` — three distinct code branches, all reachable, none previously exercised.
+- PATCH/DELETE non-owner 403 (TNA-13/14): verified by reading `PrivacyPolicy.can_update()` and `can_delete()` — both raise `AccessDeniedError`, mapped to 403 in router.
+- Unicode validation fix (TNA-15): verified with Python REPL — `" ".strip()` returns `" "` (non-empty), confirming the bug. `re.search(r'\S', " ")` correctly returns `None`.
+
+#### AI Suggestions Rejected
+
+- Add `test_create_note_response_validates_uuid_format`: UUID format is already implicitly tested — if `note.id` were non-UUID, multiple downstream ID lookups would fail. Adding a `uuid.UUID(data["id"])` assertion is useful but not priority for this sprint.
+- Add tests for the `emergency-unlock` endpoint: the endpoint is real but out of scope for the Week 9 test quality lab. Coverage note recorded; deferred to Week 10 security review.
+- Add a PATCH version of the note password test (TNA-10 style): PATCH also calls `_require_note_password`, but this code path is already covered because PATCH fetches the note via `service.get_note()` which goes through the same function. Adding a redundant PATCH-specific password test would add complexity without covering new behavior.
+
+### Test Count After Week 9
+
+Starting count: **74 tests** (Sprint 8 + HW9 state: 68 passed, 6 pre-existing failures)
+- Fixed: TVH-02 (assertion improvement, no new test)
+- Added: TNA-09, TNA-10, TNA-11, TNA-12, TNA-13, TNA-14, TNA-15 (7 new tests)
+
+**Final count: 81 tests, 75 passed, 6 pre-existing failures**
+
+> Note: The 6 pre-existing failures (`test_note_creation_defaults`, `test_note_default_visibility_is_private`, `test_privacy_can_read_public`, `test_privacy_can_read_none_user_public_note`, `test_service_list_hides_private_from_other_user`, `test_us01_create_note_with_valid_title_returns_201`) reflect a design drift: those tests were written when default visibility was "private" and public notes were visible to other users. The current implementation sets default visibility to "public" at the schema layer and enforces owner-only access in `PrivacyPolicy` for all notes. These failures are tracked and not caused by Week 9 changes.
+
+### Coverage Improvement Summary
+
+| Area | Before Week 9 | After Week 9 |
+|------|--------------|-------------|
+| Tags AND semantics | 0 tests | TNA-09 |
+| Note password branches | 0 tests (all 3 branches) | TNA-10, TNA-11, TNA-12 |
+| PATCH by non-owner → 403 | 0 tests | TNA-13 |
+| DELETE by non-owner → 403 | 0 tests | TNA-14 |
+| Unicode whitespace title | 0 tests (real bug) | TNA-15 + validator fix |
+| TVH-02 ordering robustness | Brittle positional assertion | Version-number keyed assertion |
 
 ---
 

@@ -77,3 +77,168 @@ def test_list_only_returns_own_notes(client, auth_headers):
     assert resp.status_code == 200
     assert resp.json()["notes"] == []
     assert resp.json()["total"] == 0
+
+
+# ── Week 9 improved tests ─────────────────────────────────────────────────────
+
+def test_patch_with_whitespace_only_title_returns_422(client, auth_headers):
+    """TNA-05: PATCH with whitespace-only title must be rejected with 422 (FR-01/US-02).
+
+    NoteUpdate schema intentionally omits title validation so partial updates work.
+    Rejection happens via Note.patch() raising ValidationError, caught in the router
+    and re-raised as HTTP 422. This test is the only regression guard for that path.
+    """
+    create = client.post("/notes/", json={"title": "Valid Title"}, headers=auth_headers)
+    note_id = create.json()["id"]
+    resp = client.patch(f"/notes/{note_id}", json={"title": "   "}, headers=auth_headers)
+    assert resp.status_code == 422
+
+
+def test_tags_filter_returns_matching_notes(client, auth_headers):
+    """TNA-06: GET /notes/?tags=X returns only notes that include tag X (FR-04/US-05)."""
+    client.post("/notes/", json={"title": "Tagged", "tags": ["python", "testing"], "visibility": "public"}, headers=auth_headers)
+    client.post("/notes/", json={"title": "Untagged", "tags": [], "visibility": "public"}, headers=auth_headers)
+    resp = client.get("/notes/?tags=python", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    titles = {n["title"] for n in data["notes"]}
+    assert "Tagged" in titles
+    assert "Untagged" not in titles
+
+
+def test_tags_filter_returns_empty_when_no_match(client, auth_headers):
+    """TNA-07: ?tags=nonexistent returns empty list, not a server error (FR-04).
+
+    High line coverage on the filter block still leaves this no-match path untested.
+    Without this test, removing the early-return guard could silently break the API.
+    """
+    client.post("/notes/", json={"title": "Note A", "tags": ["python"], "visibility": "public"}, headers=auth_headers)
+    resp = client.get("/notes/?tags=doesnotexist", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["notes"] == []
+    assert resp.json()["total"] == 0
+
+
+def test_tags_filter_is_case_sensitive(client, auth_headers):
+    """TNA-08: tag matching is case-sensitive per FR-04 spec (Python vs python)."""
+    client.post("/notes/", json={"title": "Lower", "tags": ["python"], "visibility": "public"}, headers=auth_headers)
+    resp = client.get("/notes/?tags=Python", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 0
+
+
+def test_tags_filter_requires_all_tags_present(client, auth_headers):
+    """TNA-09: ?tags=a&tags=b returns only notes containing BOTH a and b (AND semantics, FR-04).
+
+    The filter uses set.issubset() — notes with only one matching tag must be excluded.
+    Without this test, changing issubset() to any() (OR logic) would go undetected.
+    """
+    client.post("/notes/", json={"title": "Both", "tags": ["python", "testing"], "visibility": "public"}, headers=auth_headers)
+    client.post("/notes/", json={"title": "One only", "tags": ["python"], "visibility": "public"}, headers=auth_headers)
+    resp = client.get("/notes/?tags=python&tags=testing", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    titles = {n["title"] for n in data["notes"]}
+    assert "Both" in titles
+    assert "One only" not in titles
+
+
+# ── Note password access control (TNA-10 / TNA-11 / TNA-12) ──────────────────
+
+def test_get_private_note_without_password_returns_401(client, auth_headers):
+    """TNA-10: GET /notes/{id} on a password-protected private note with no X-Note-Password returns 401.
+
+    _require_note_password() raises 401 when note_password_hash is set but no password header
+    is provided. The note must be visibility='private' — public notes skip the password check.
+    This test is the primary regression guard for that branch.
+    """
+    create = client.post(
+        "/notes/",
+        json={"title": "Secret", "visibility": "private", "note_password": "hunter2"},
+        headers=auth_headers,
+    )
+    note_id = create.json()["id"]
+    resp = client.get(f"/notes/{note_id}", headers=auth_headers)
+    assert resp.status_code == 401
+
+
+def test_get_private_note_with_wrong_password_returns_403(client, auth_headers):
+    """TNA-11: GET /notes/{id} on a password-protected private note with an incorrect X-Note-Password returns 403.
+
+    _require_note_password() raises 403 when the provided password does not match the stored
+    bcrypt hash. Without this test, removing the verify() call would go undetected.
+    """
+    create = client.post(
+        "/notes/",
+        json={"title": "Secret", "visibility": "private", "note_password": "hunter2"},
+        headers=auth_headers,
+    )
+    note_id = create.json()["id"]
+    resp = client.get(f"/notes/{note_id}", headers={**auth_headers, "X-Note-Password": "wrong"})
+    assert resp.status_code == 403
+
+
+def test_get_private_note_with_correct_password_returns_200(client, auth_headers):
+    """TNA-12: GET /notes/{id} with the correct X-Note-Password returns 200 with full body.
+
+    This is the success path of _require_note_password(). Without this test, the password
+    verification could always raise 403 and the happy path would go untested.
+    """
+    create = client.post(
+        "/notes/",
+        json={"title": "Secret", "body": "my secret body", "visibility": "private", "note_password": "hunter2"},
+        headers=auth_headers,
+    )
+    note_id = create.json()["id"]
+    resp = client.get(f"/notes/{note_id}", headers={**auth_headers, "X-Note-Password": "hunter2"})
+    assert resp.status_code == 200
+    assert resp.json()["body"] == "my secret body"
+
+
+# ── AccessDeniedError → 403 for PATCH and DELETE (TNA-13 / TNA-14) ───────────
+
+def test_patch_note_by_non_owner_returns_403(client, auth_headers):
+    """TNA-13: PATCH /notes/{id} by a user who is not the author returns 403.
+
+    NoteService.update_note() raises AccessDeniedError via PrivacyPolicy.can_update().
+    The router maps this to HTTP 403. Without this test, removing that exception handler
+    would silently allow unauthorized edits.
+    """
+    create = client.post("/notes/", json={"title": "Original", "visibility": "public"}, headers=auth_headers)
+    note_id = create.json()["id"]
+
+    client.post("/auth/register", json={"username": "userB", "password": "pw123"})
+    login = client.post("/auth/login", json={"username": "userB", "password": "pw123"})
+    b_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    resp = client.patch(f"/notes/{note_id}", json={"title": "Hijacked"}, headers=b_headers)
+    assert resp.status_code == 403
+
+
+def test_delete_note_by_non_owner_returns_403(client, auth_headers):
+    """TNA-14: DELETE /notes/{id} by a non-owner returns 403.
+
+    Same AccessDeniedError → 403 path as PATCH, exercised through the DELETE router.
+    """
+    create = client.post("/notes/", json={"title": "Do not delete", "visibility": "public"}, headers=auth_headers)
+    note_id = create.json()["id"]
+
+    client.post("/auth/register", json={"username": "userC", "password": "pw456"})
+    login = client.post("/auth/login", json={"username": "userC", "password": "pw456"})
+    c_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    resp = client.delete(f"/notes/{note_id}", headers=c_headers)
+    assert resp.status_code == 403
+
+
+# ── Unicode title validation (TNA-15) ────────────────────────────────────────
+
+def test_create_note_with_non_breaking_space_title_returns_422(client, auth_headers):
+    """TNA-15: Title consisting only of non-breaking spaces (U+00A0) must be rejected.
+
+    str.strip() does not remove U+00A0 — a title of '\\u00a0' would silently pass
+    the original validator. The fix uses re.search(r'\\S', v) which treats all
+    Unicode whitespace as whitespace, not just ASCII.
+    """
+    resp = client.post("/notes/", json={"title": " "}, headers=auth_headers)
+    assert resp.status_code == 422

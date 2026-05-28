@@ -18,9 +18,14 @@ def test_get_versions_after_create_returns_one_entry(client, auth_headers):
     assert data["versions"][0]["version"] == 1
 
 
-# TVH-02
+# TVH-02 (improved: assert on version number, not array position — same fix as TSQ-14)
 def test_get_versions_after_update_returns_two_entries(client, auth_headers):
-    """Updating a note adds a second snapshot."""
+    """Updating a note adds a second snapshot, verifiable by version number not array index.
+
+    Original test used versions[1] which couples the assertion to oldest-first sort order.
+    If a future implementation returns newest-first the test fails for the wrong reason —
+    ordering is an implementation detail, version numbers are the requirement (FR-06).
+    """
     create = client.post("/notes/", json={"title": "v1 title"}, headers=auth_headers)
     note_id = create.json()["id"]
     client.patch(f"/notes/{note_id}", json={"title": "v2 title"}, headers=auth_headers)
@@ -28,8 +33,10 @@ def test_get_versions_after_update_returns_two_entries(client, auth_headers):
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] == 2
-    assert data["versions"][1]["change_type"] == "update"
-    assert data["versions"][1]["title"] == "v2 title"
+    by_version = {v["version"]: v for v in data["versions"]}
+    assert 1 in by_version and 2 in by_version
+    assert by_version[2]["change_type"] == "update"
+    assert by_version[2]["title"] == "v2 title"
 
 
 # TVH-03
