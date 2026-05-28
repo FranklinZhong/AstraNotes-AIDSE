@@ -250,6 +250,106 @@ Close all Sprint 1 prerequisites (SZ-06, GOV-B-02~05, design issue decisions), t
 
 ---
 
+## Sprint 7 — SqliteNoteRepository + FastAPI Notes API (Week 7, 2026-05-11)
+
+**Goal:** Implement the full notes REST API using TDD; replace JSON file storage with SQLite for the web layer.
+
+**Sprint Backlog:**
+- [x] `SqliteNoteRepository` implementing `AbstractNoteRepository` via SQLAlchemy Core
+- [x] `POST /notes/`, `GET /notes/`, `GET /notes/{id}`, `PATCH /notes/{id}`, `DELETE /notes/` endpoints
+- [x] `NoteCreate`, `NoteUpdate`, `NoteResponse`, `NoteListResponse` Pydantic schemas
+- [x] Integration tests (test_notes_api.py): US-01~05 test coverage, TNA-01~04
+- [x] Repository unit tests (test_sqlite_repository.py): TSQ-01~12 (CRUD + tags + version field)
+- [x] `?tags=` query filter (AND semantics via `set.issubset()`)
+
+**Key Decisions:**
+- SQLAlchemy Core chosen over ORM (simpler for current scale; direct SQL control)
+- Test isolation: named in-memory SQLite URI (`file:{uuid}?mode=memory&cache=shared`) per test — StaticPool approach rejected after discovering it caused cross-test contamination
+- `HTTPBearer(auto_error=False)` to get 401 (not 403) for missing tokens
+
+**AI Role:**
+- Generated `SqliteNoteRepository` scaffold and schema definitions
+- Human identified StaticPool isolation bug; fixed via named in-memory URI approach
+- Human verified all Pydantic validators against domain model behavior before accepting
+
+**Outcome:** 58 tests passing (29 domain + 17 repository + 5 auth + 5 notes API + 2 health); CI green on Python 3.11 and 3.12.
+
+**Lessons Learned:**
+- SQLite in-memory isolation is non-trivial in multi-connection test environments
+- `HTTPBearer` default behavior differs between FastAPI versions — pin and test against both 3.11 and 3.12 early
+
+---
+
+## Sprint 8 — Version History + Collaborative Git Workflow (Week 8, 2026-05-18)
+
+**Goal:** Add version history with revert capability; practice collaborative branching and PR workflow; improve UI.
+
+**Sprint Backlog:**
+- [x] `note_versions` table in SQLite; `add_version_snapshot()`, `get_versions()`, `revert_to_version()` in `SqliteNoteRepository`
+- [x] `GET /notes/{id}/versions` and `POST /notes/{id}/revert/{version}` endpoints (`routers/history.py`)
+- [x] `NoteService.revert_note()` method
+- [x] TSQ-13~17: repository unit tests for version history
+- [x] TVH-01~05: API integration tests for version history endpoints
+- [x] UI: version history panel (collapsible), toast error system (replaces console.error), tags input
+- [x] Branching workflow: `feature/search-filter` PR (tags schema + filter) + `test/title-validation` PR (whitespace title fix + 3 tests)
+- [x] CI fixed: `HTTPBearer(auto_error=False)` resolves 401/403 discrepancy between FastAPI versions
+
+**Key Decisions:**
+- Version snapshots stored in separate `note_versions` table (not as JSON blob in notes table) — cleaner schema, easier to query
+- UI toast system preferred over `alert()` — non-blocking, dismissible, consistent with web UX patterns
+- `feature/search-filter` PR required `Request changes` review — missing docstring for AND semantics; human judgment call
+
+**AI Role:**
+- Generated version history table schema and repository methods
+- Generated PR descriptions and review question templates
+- Human identified HTTPBearer CI failure; human made final merge decision on both PRs
+- Human rejected AI suggestion to make tag filter case-insensitive (canonicalization belongs at creation time)
+
+**Outcome:** 70 tests passing; version history fully functional; 2 PRs merged via formal review workflow; CI passing.
+
+**Lessons Learned:**
+- CI matrix (3.11 + 3.12) caught a real version-specific behavior difference (FastAPI HTTPBearer)
+- PR review process catches scope and documentation gaps that code review alone misses
+
+---
+
+## Sprint 9 — Note Passwords, Auto-Save, Test Quality (Week 9, 2026-05-27)
+
+**Goal:** Add note-level password protection and emergency unlock; implement auto-save UX; apply Prompt Bank test quality improvements.
+
+**Sprint Backlog:**
+- [x] Note-level bcrypt password: `note_password_hash` field in `Note` + SQLite; `X-Note-Password` header enforcement in `GET /notes/{id}` and `PATCH /notes/{id}` via `_require_note_password()`
+- [x] `POST /notes/{id}/emergency-unlock` endpoint: verify account password, clear `note_password_hash`
+- [x] Auto-save UI: 2-second debounce on title/body/tags changes; `● Unsaved` / `⟳ Saving…` / `✓ Saved` status indicator; `_isSaving` concurrency guard; timer cleanup on note switch/logout
+- [x] Visibility toggle auto-save: Public→Private and Private→Public transitions save immediately after confirmation
+- [x] Unicode title validation fix: `re.search(r'\S', v)` replaces `v.strip()` in both Pydantic validator and domain model (catches U+00A0 non-breaking spaces)
+- [x] Prompt Bank exercise (7 prompts applied to test suite):
+  - TVH-02 fix: `versions[1]` positional index → `by_version` version-number keyed assertion
+  - TNA-09: AND tags semantics test
+  - TNA-10/11/12: note password 401/403/200 branches
+  - TNA-13/14: PATCH/DELETE non-owner → 403
+  - TNA-15: unicode title validation
+
+**Key Decisions (see ADR-PWD-01, ADR-UNLOCK-01, ADR-AUTOSAVE-01):**
+- bcrypt for note passwords (consistent with account password approach; no plaintext ever stored)
+- 2-second debounce for auto-save (balance between responsiveness and API call volume)
+- Emergency unlock clears hash rather than recovering password (impossible with bcrypt)
+
+**AI Role:**
+- Prompt Bank: AI critiqued test suite across 7 dimensions; human verified every finding against source code before accepting
+- AI-generated TVH-02 fix, AND tags test, unicode fix all accepted after verification
+- AI suggestion to add emergency-unlock tests rejected for Week 9 scope; deferred to Week 10 security review
+- AI suggestion to split TSQ-14 into separate tests rejected (unnecessary complexity)
+
+**Outcome:** 81 tests total (75 passing, 6 pre-existing visibility-drift failures tracked and documented); all Sprint 9 features functional; Week 9 collaboration log completed.
+
+**Lessons Learned:**
+- Prompt Bank is a structured critique tool: AI finds patterns, human verifies against code
+- Pre-existing test failures must be documented (not hidden) — they represent design decisions, not bugs
+- Unicode edge cases (` `) are not caught by Python's `str.strip()` — use `re.search(r'\S', v)`
+
+---
+
 ## Sprint Template (copy for each new Sprint)
 
 ```markdown

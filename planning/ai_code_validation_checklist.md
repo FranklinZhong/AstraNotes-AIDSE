@@ -28,7 +28,7 @@ For each AI-generated function, class, or module:
 
 ### 2. Interface Consistency
 
-- [ ] **author_id / user_id sentinel:** All code passes `author_id="local_user"` and `user_id="local_user"`. No user registry or authentication logic is present.
+- [ ] **author_id / user_id sentinel:** All code passes `author_id=<JWT-derived user_id from get_current_user() dependency>`. No user registry or authentication logic is present.
 - [ ] **No tags in service API:** `NoteService` methods do not expose a `tags` parameter (tags field exists on `Note` but is not surfaced in service layer per Issue 3 decision).
 - [ ] **Exception types only:** No raw Python exceptions (`FileNotFoundError`, `KeyError`, `JSONDecodeError`, etc.) escape any public method. All wrapped in `AstraNotesError` hierarchy.
 - [ ] **Dependency injection:** `NoteService` receives `AbstractNoteRepository`, `PrivacyPolicy`, and `VersionHistory` as constructor arguments — never instantiates them internally.
@@ -37,8 +37,8 @@ For each AI-generated function, class, or module:
 
 - [ ] **New test added:** At least one test file updated or created covering the generated code's success path.
 - [ ] **Failure path covered:** At least one test verifies the expected exception or error for an invalid input or failure condition.
-- [ ] **Tests pass:** `pytest` runs green after the change (29 existing tests must still pass).
-- [ ] **No test mocks that hide real behavior:** Tests that touch storage must use a real `JsonFileNoteRepository` backed by a temp directory, not a mock that bypasses I/O.
+- [ ] **Tests pass:** `pytest` runs green after the change (81 tests total (75 passing, 6 pre-existing visibility-drift failures tracked); run `python -m pytest -q` to verify).
+- [ ] **No test mocks that hide real behavior:** `SqliteNoteRepository` is used in API integration tests (production path); `JsonFileNoteRepository` retained for domain layer unit tests only. Tests that touch storage must use real repositories backed by in-memory or temp storage, not mocks that bypass I/O.
 
 ### 4. Privacy and Governance
 
@@ -73,3 +73,23 @@ After completing the checklist, record the session:
 | Tags parameter | AI may re-introduce `tags=[]` in service method signatures; must be absent |
 | Raw exceptions | AI may not wrap `json.JSONDecodeError` — verify all I/O is in try/except with named exceptions |
 | UC7/UC8 features | AI may implement `get_history()` or `revert()` as user-facing commands; internal only for Sprint 1 |
+
+## JWT Authentication Checklist (Sprint 6+)
+
+Added when project pivoted to web multi-user architecture (ADR-WEB-01).
+
+- [ ] JWT token not stored in `localStorage` (use `sessionStorage` to reduce XSS risk)
+- [ ] `Authorization: Bearer <token>` header format used correctly in all authenticated requests
+- [ ] 401 returned for missing/invalid/expired token (not 403)
+- [ ] 403 returned for authenticated user accessing another user's resource (not 401)
+- [ ] `JWT_SECRET` read from environment variable, never hardcoded
+- [ ] Token payload contains only `user_id` and `exp` — no sensitive data
+- [ ] `get_current_user()` dependency used consistently across all protected endpoints
+
+## Note Password Checklist (Sprint 9)
+
+- [ ] `note_password_hash` never included in `NoteResponse` (only `is_protected` boolean)
+- [ ] `X-Note-Password` header verified via bcrypt before returning private note content
+- [ ] Missing password → 401, wrong password → 403, correct password → 200
+- [ ] `note_password` field in `NoteCreate`/`NoteUpdate` hashed before storage, never logged
+- [ ] Emergency unlock verifies account password, does not reveal original note password

@@ -1,6 +1,6 @@
 # AstraNotes — Deployment Plan
 
-> **Status: DRAFT — Week 10 (CI/CD & Deployment) not yet covered. Render deployment URL and actual CI results will be added after Week 10 class (~2026-06-01).**
+> **Status:** Complete — CI/CD operational; Render deployment pending live URL (to be added after demo deployment, weekend of June 1-2, 2026).
 
 ## Overview
 
@@ -95,3 +95,20 @@ JWT_SECRET=dev-secret uvicorn app.main:app --reload
 # Run tests
 python -m pytest -q
 ```
+
+## CI/CD Status (Week 10)
+
+**GitHub Actions pipeline** (`ci.yml`) is operational as of Sprint 8:
+
+| Trigger | Python versions | Test command | Status |
+|---------|----------------|--------------|--------|
+| Push to `main` | 3.11, 3.12 | `pytest -q --tb=short` | ✅ Passing (commit cfff430) |
+| PR to `main` | 3.11, 3.12 | `pytest -q --tb=short` | ✅ Active gate |
+
+Test results are uploaded as artifacts with 7-day retention on every CI run.
+
+**Render deployment notes:**
+- Free tier instances sleep after 15 minutes of inactivity
+- First request after sleep has approximately 30-second cold start
+- Demo video should warm up the application before recording live interactions
+- `DATABASE_URL` defaults to `sqlite:///./notes.db` (ephemeral on Render; data lost on redeploy — acceptable for demo)

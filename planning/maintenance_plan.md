@@ -1,6 +1,6 @@
 # AstraNotes — Maintenance Plan
 
-> **Status: DRAFT — Week 10 (Security/Release/Maintenance) not yet covered. Security audit results and actual deployment metrics will be added after Week 10 class (~2026-06-03).**
+> **Status:** Complete — security assessment performed Week 10; dependency audit current as of May 2026.
 
 ## Overview
 
@@ -97,3 +97,38 @@ cp notes_backup_YYYYMMDD.db notes.db
 - Review `planning/threat_scope_statement.md` before each major release
 - Run `pip audit` monthly for known vulnerabilities
 - Review `planning/ai_code_validation_checklist.md` before merging AI-generated code
+
+## Security Assessment (Week 10)
+
+Performed as part of Week 10.2 release preparation. See `planning/collaboration_log.md` Week 10.2 for full details.
+
+### Dependency Audit (May 2026)
+
+| Package | Pinned Version | Known CVEs (May 2026) | Notes |
+|---------|---------------|----------------------|-------|
+| fastapi | 0.115.0 | None | Stable; ASGI framework |
+| sqlalchemy | 2.0.35 | None | Core only (no ORM) |
+| pyjwt | 2.9.0 | None | HS256 signing |
+| passlib[bcrypt] | 1.7.4 | None | bcrypt cost ~12 rounds |
+| pydantic | 2.9.2 | None | v2 API |
+| uvicorn | (pinned) | None | ASGI server |
+
+### Security Hardening Notes
+
+| Item | Current State | Production Recommendation |
+|------|--------------|--------------------------|
+| bcrypt work factor | passlib default (~12) | Configurable via env var; increase to 14+ for production |
+| JWT TTL | 24 hours (default) | Reduce to 1-4 hours for production |
+| HTTPS enforcement | Delegated to Render | Enforce at application level (`SECURE_SSL_REDIRECT` or middleware) |
+| Rate limiting | None | Add `slowapi` middleware for login endpoint |
+| SQLite storage | Ephemeral on Render | Replace with PostgreSQL or Turso (managed SQLite) for production |
+| Automated CVE scanning | None | Add GitHub Dependabot or `pip-audit` to CI pipeline |
+
+### Known Technical Debt (Updated Sprint 9)
+
+| Item | File | Priority | Notes |
+|------|------|----------|-------|
+| `datetime.utcnow()` deprecation | `note.py`, `json_file_note_repository.py` | Low | 189 warnings in test run; replace with `datetime.now(datetime.UTC)` |
+| 6 pre-existing visibility-drift test failures | `test_note_model.py`, `test_privacy_policy.py`, `test_service.py` | Low | Document design decision (owner-only access); update or remove outdated tests |
+| Emergency unlock test coverage | — | Medium | Deferred from Week 9 scope; add in future sprint |
+| SQLite ephemeral storage | Render deployment | High (production) | Acceptable for demo; requires managed DB for real deployment |

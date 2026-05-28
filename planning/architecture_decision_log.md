@@ -286,3 +286,116 @@ Use **SQLAlchemy Core** (not ORM) for `SqliteNoteRepository`.
 - `add_version_snapshot()` is a no-op (returns None) — required because NoteService.create_note/update_note calls it unconditionally; full implementation deferred to Sprint 8
 - `check_same_thread=False` required for FastAPI's thread pool
 - Tags stored as JSON string (TEXT column); deserialized on read
+
+---
+
+## ADR-PWD-01 — Note-Level bcrypt Password Protection
+
+**Date:** 2026-05-26 (Sprint 9)
+**Status:** Accepted
+**Deciders:** Wentao Zhong (human lead) + Claude (AI assistant)
+
+### Context
+
+Account-level JWT authentication isolates notes between users, but does not protect a note if the account itself is compromised. Users wanted an optional second layer of protection for sensitive notes — a per-note password that must be provided even to the authenticated owner.
+
+### Decision
+
+Add an optional `note_password_hash` field (bcrypt via passlib) to the `Note` entity and SQLite `notes` table. When set, `GET /notes/{id}` and `PATCH /notes/{id}` require an `X-Note-Password` request header. The router enforces this via `_require_note_password()` before returning content:
+- No header provided → HTTP 401
+- Wrong password → HTTP 403
+- Correct password → HTTP 200 with full note content
+
+`NoteCreate` and `NoteUpdate` accept an optional `note_password` field that is hashed before storage and never returned in API responses.
+
+### Alternatives Considered
+
+| Option | Reason Rejected |
+|--------|----------------|
+| Encrypted note content (AES) | Adds key management complexity; out of SZ-06 scope (access-control-only decision) |
+| Plaintext password comparison | Security anti-pattern; inconsistent with account password approach |
+| Password-protected ZIP export | Not real-time; poor UX for individual note access |
+
+### Consequences
+
+- Emergency unlock endpoint required for password-forgotten recovery (see ADR-UNLOCK-01)
+- `is_protected` flag added to `NoteResponse` to signal password-protected status to UI without revealing hash
+- PATCH endpoint must also enforce note password before allowing edits
+- Test coverage: TNA-10 (401), TNA-11 (403), TNA-12 (200) verify all three branches
+
+---
+
+## ADR-UNLOCK-01 — Emergency Unlock via Account Password
+
+**Date:** 2026-05-26 (Sprint 9)
+**Status:** Accepted
+**Deciders:** Wentao Zhong (human lead) + Claude (AI assistant)
+
+### Context
+
+ADR-PWD-01 introduced note-level bcrypt passwords. bcrypt is one-way — forgotten note passwords cannot be recovered. Without a recovery mechanism, a user who forgets a note password permanently loses access to that note's content. This is an unacceptable UX outcome for a note-taking application.
+
+### Decision
+
+Add `POST /notes/{id}/emergency-unlock` endpoint. The request body includes the user's **account** password (`account_password`). The endpoint:
+1. Verifies the account password via bcrypt comparison against the stored account hash (`verify_user_password()` in `auth.py`)
+2. If correct: clears `note_password_hash` to `None` and saves the note
+3. Returns the updated note (now accessible without a note password)
+4. If incorrect: returns HTTP 403
+
+The note remains accessible without a password until the user sets a new one. The UI prompts the user to set a new note password immediately after emergency unlock.
+
+### Alternatives Considered
+
+| Option | Reason Rejected |
+|--------|----------------|
+| Email-based password reset | No email infrastructure in AstraNotes v1 |
+| Security question | Adds complexity; not implemented |
+| Master admin reset | No admin role in current architecture |
+| No recovery (accept loss) | Unacceptable UX — users lose data |
+
+### Consequences
+
+- `verify_user_password()` helper added to `app/routers/auth.py` (reused by emergency unlock)
+- Unlock clears hash (does not recover original password — impossible with bcrypt)
+- Test coverage: deferred to Week 10 security review (noted in collaboration_log.md)
+
+---
+
+## ADR-AUTOSAVE-01 — Auto-Save with 2-Second Debounce
+
+**Date:** 2026-05-26 (Sprint 9)
+**Status:** Accepted
+**Deciders:** Wentao Zhong (human lead) + Claude (AI assistant)
+
+### Context
+
+User testing (informal) revealed that users frequently forgot to click the Save button after editing notes. Changes were silently lost when navigating away or closing the tab. The explicit save model is appropriate for conflict-sensitive collaborative editing but unnecessary for a single-owner note-taking application.
+
+### Decision
+
+Implement auto-save in the web UI: 2 seconds after the last keystroke in title, body, or tags fields, the client automatically sends a `PATCH /notes/{id}` request with the current content. No new server endpoint is required — this is a client-side UX enhancement only.
+
+Status indicator states:
+- `● Unsaved` (amber): content has changed since last save
+- `⟳ Saving…` (muted): PATCH request in flight
+- `✓ Saved` (green): last PATCH succeeded
+
+Additional behaviors:
+- `_isSaving` flag prevents concurrent auto-save requests
+- Pending timer cancelled on note switch, editor reset, or logout
+- Visibility toggle (public↔private) and password set/remove operations trigger immediate save (no debounce) to prevent state inconsistency
+
+### Alternatives Considered
+
+| Option | Reason Rejected |
+|--------|----------------|
+| Explicit save only | Poor UX; users lose data |
+| Immediate save on every keystroke | Too many API calls; creates unnecessary server load and version history noise |
+| Local draft with periodic sync | Adds client-side state management complexity; overkill for current scope |
+
+### Consequences
+
+- Version history now includes frequent auto-save snapshots (each PATCH creates an "update" snapshot)
+- If server is unavailable, auto-save fails silently with `● Unsaved` indicator — data not lost in browser until navigation
+- `_setSaveStatus()` utility function centralizes all status DOM updates

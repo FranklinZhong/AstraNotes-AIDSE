@@ -141,3 +141,53 @@ Authorization: Bearer <jwt_token>     (all /notes/* endpoints)
 - No rate limiting or pagination in Phase 1
 - No email verification or password reset
 - Python 3.12+ required
+
+---
+
+## Sprint 9 Additions (2026-05-26)
+
+### New Endpoint: Emergency Unlock
+
+**POST `/notes/{id}/emergency-unlock`**
+
+Clears the note-level password hash by verifying the user's account password. Used when the user has forgotten the note password and cannot access content via `X-Note-Password`.
+
+| Field | Value |
+|-------|-------|
+| Auth | `Authorization: Bearer <token>` (owner only) |
+| Request body | `{"account_password": "<plaintext account password>"}` |
+| Success response | `200 OK` — `NoteResponse` with `is_protected: false` and `note_password_hash` cleared |
+| Error: wrong account password | `403 Forbidden` — `{"detail": "Incorrect account password"}` |
+| Error: note not found | `404 Not Found` |
+| Error: not owner | `403 Forbidden` (AccessDeniedError from PrivacyPolicy) |
+
+Implementation: `app/routers/notes.py::emergency_unlock()`. Delegates password verification to `verify_user_password()` in `app/routers/auth.py`.
+
+### Note Password Fields (NoteCreate / NoteUpdate)
+
+Both `NoteCreate` (POST /notes/) and `NoteUpdate` (PATCH /notes/{id}) accept an optional `note_password` field:
+
+```json
+{
+  "title": "Sensitive Note",
+  "visibility": "private",
+  "note_password": "my-note-password"
+}
+```
+
+- The password is hashed with bcrypt before storage; never returned in any response
+- When `visibility` switches to `"public"`, the note password hash is automatically cleared
+- `NoteResponse` includes `is_protected: true/false` to indicate whether a note password is active
+
+### Auto-Save Behavior (Client-Side)
+
+Auto-save is a client-side behavior only; no new server endpoints are required.
+
+- 2 seconds after the last keystroke in title, body, or tags, the UI sends `PATCH /notes/{id}` with current content
+- Status indicator transitions: `● Unsaved` (amber) → `⟳ Saving…` (muted) → `✓ Saved` (green)
+- Visibility toggle and password changes trigger immediate save (no debounce) to prevent state inconsistency
+- `_isSaving` flag prevents concurrent requests; pending timers are cancelled on note switch or logout
+
+### Unicode Title Validation Fix
+
+Both the Pydantic `NoteCreate` validator and the domain `Note.__post_init__` / `Note.patch()` now use `re.search(r'\S', value)` instead of `value.strip()` to detect whitespace-only titles. This correctly rejects titles consisting only of non-breaking spaces (` `), which Python's `str.strip()` does not remove. Verified by TNA-15.

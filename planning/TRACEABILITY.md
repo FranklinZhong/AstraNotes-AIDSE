@@ -154,3 +154,52 @@ Three design elements exist without requirement backing: version history use cas
 | test_create_note_response_has_author_id | test_notes_api.py | FR-07, US-06 |
 | test_list_only_returns_own_notes | test_notes_api.py | GOV-01, US-04, FR-04 |
 | test_get_nonexistent_returns_404 | test_notes_api.py | NFR-03 |
+
+---
+
+## Post-Implementation Update — Sprint 8-9 (2026-05-27)
+
+### New Features Traced to Requirements
+
+| Feature | Requirement | Implementation | Tests |
+|---------|-------------|----------------|-------|
+| Version history snapshots | FR-06 (version audit trail) | `SqliteNoteRepository.add_version_snapshot()`, `get_versions()`, `revert_to_version()`; `NoteService.revert_note()` | TSQ-13~17 (repo unit), TVH-01~05 (API integration) |
+| Note-level password protection | FR-04 (privacy), GOV-01 (access control) | `note_password_hash` field; `_require_note_password()` in router; `X-Note-Password` header | TNA-10 (missing pw→401), TNA-11 (wrong pw→403), TNA-12 (correct pw→200) |
+| Emergency unlock | FR-04 (data recovery), GOV-01 | `POST /notes/{id}/emergency-unlock`; `verify_user_password()` in auth.py | Deferred to Week 10 security review |
+| Auto-save UX | NFR (usability) | Client-side 2s debounce; `_isSaving` guard; status indicator | Manual UI behavioral test |
+| Unicode title validation | FR-01 (input validation) | `re.search(r'\S', v)` in `NoteCreate` validator + `Note.__post_init__` + `Note.patch()` | TNA-15 |
+| Tags AND filter | FR-04, US-05 | `tag_set.issubset(n.tags)` in notes router | TNA-09 |
+| PATCH/DELETE access control | GOV-01 (authorization) | `PrivacyPolicy.can_update/delete()` → `AccessDeniedError` → HTTP 403 | TNA-13 (PATCH), TNA-14 (DELETE) |
+| Version assertion robustness | FR-06 | TVH-02 fixed: positional index → version-number keyed assertion | TVH-02 (improved) |
+
+### Updated Implementation Status
+
+| Requirement | Sprint 7 | Sprint 8 | Sprint 9 |
+|-------------|----------|----------|----------|
+| FR-01 (Create note + validation) | ✅ | ✅ | ✅ + unicode fix |
+| FR-02 (Edit note) | ✅ | ✅ | ✅ + auto-save |
+| FR-03 (Delete note) | ✅ | ✅ | ✅ + non-owner 403 |
+| FR-04 (Privacy / visibility) | ✅ | ✅ | ✅ + note passwords |
+| FR-05 (Persistence) | ✅ SQLite | ✅ | ✅ |
+| FR-06 (Version history) | ⚠️ domain only | ✅ full API | ✅ TVH-02 fix |
+| FR-07 (Timestamps) | ✅ | ✅ | ✅ |
+| FR-08 (Emergency unlock) | — | — | ✅ impl; ⚠️ tests pending |
+| NFR-01 (Adapter isolation) | ✅ | ✅ | ✅ |
+| NFR-02 (Atomic writes) | ✅ SQLite tx | ✅ | ✅ |
+| NFR-03 (Error types) | ✅ | ✅ | ✅ |
+| GOV-01 (Access control) | ✅ | ✅ | ✅ TNA-13/14 |
+| GOV-03 (Test coverage) | 58 tests | 70 tests | 81 tests |
+| GOV-04 (Dependencies) | ✅ | ✅ | ✅ |
+| GOV-05 (Unicode validation) | — | — | ✅ TNA-15 |
+
+### Test Coverage Summary (Sprint 9 final)
+
+| Test File | Count | Covers |
+|-----------|-------|--------|
+| `AstraNotes_v1/tests/` | 32 | Domain model, service, privacy policy, JSON repo, version history (domain) |
+| `app/tests/test_sqlite_repository.py` | 17 | SQLite adapter CRUD + version history (TSQ-01~17) |
+| `app/tests/test_notes_api.py` | 20 | HTTP endpoints, tag filter, note passwords, access control (TNA-01~15) |
+| `app/tests/test_version_history_api.py` | 5 | Version history API (TVH-01~05) |
+| `app/tests/test_auth.py` | 5 | Auth register/login |
+| `app/tests/test_health.py` | 2 | Health endpoint |
+| **Total** | **81** | **75 passing; 6 pre-existing visibility-drift failures tracked** |

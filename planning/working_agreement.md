@@ -85,3 +85,33 @@ A checklist entry that cannot be completed means the AI output is not ready to m
 ### Agreement 10 — Privacy Claim Discipline
 
 No documentation, README, or CLI output may claim that AstraNotes is secure, encrypted, or privacy-compliant unless the underlying design actually delivers that property. The private flag is access-control-only until SZ-06 resolves otherwise. Any claim beyond that must be traceable to an implemented and tested requirement.
+
+---
+
+## Sprint 8-10 Governance Addendum (2026-05-18 through 2026-06-03)
+
+The following agreements were added as the project progressed into implementation and release phases.
+
+### Agreement 11 — Branch Naming and PR Format (Sprint 8, 2026-05-18)
+
+All branches follow the `<type>/<short-description>` convention: `feature/`, `test/`, `fix/`, `docs/`. Every pull request must include four sections before requesting review: **Change** (what is being added), **Why** (requirement or problem being solved), **Risks** (what could break), **Evidence** (test results or CI link). PRs without this structure receive a `Request changes` review.
+
+*Rationale:* Established during Week 8 collaborative Git workflow exercise; the `feature/search-filter` PR was blocked until missing AND-semantics docstring was added, demonstrating the value of explicit PR structure.
+
+### Agreement 12 — CI Gate on Both Python Versions (Sprint 8, 2026-05-18)
+
+No branch is merged to `main` without CI passing on both Python 3.11 and 3.12. This gate is non-negotiable even for documentation-only changes.
+
+*Rationale:* The HTTPBearer 401/403 bug was caught by the 3.11/3.12 matrix — the bug was real, not a false alarm. The cost of enforcing both versions is low; the value of catching version-specific behavior is demonstrated.
+
+### Agreement 13 — AI Test Suggestions Require Source Verification (Sprint 9, 2026-05-27)
+
+All AI-suggested tests must be verified against the actual source code before being added to the test suite. Each accepted test must have a documented requirement linkage (FR/NFR/GOV ID). Rejected suggestions must be documented with the reason for rejection in `collaboration_log.md`.
+
+*Rationale:* Applied during Week 9 Prompt Bank exercise. AI identified 7 gaps; 7 were accepted (all verified against code); 3 suggestions were rejected (already covered, Python truthiness behavior not application behavior, unnecessary complexity). The verification step prevented adding tests that would have had no real behavioral meaning.
+
+### Agreement 14 — Human Review of Security-Sensitive Code (Sprint 9, 2026-05-27)
+
+Any code involving password hashing, JWT token generation/verification, or access control enforcement must be read and understood by the human developer before committing. AI output in these areas is accepted only after the human has traced the execution path from input to storage/response.
+
+*Rationale:* bcrypt and JWT implementations have subtle correctness requirements (cost factor, algorithm selection, `exp` claim handling). Accepting AI output without reading the implementation creates invisible security debt.
