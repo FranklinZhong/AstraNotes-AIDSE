@@ -115,18 +115,95 @@ Any developer modifying `AstraNotes_v1/note.py` or `json_file_note_repository.py
 
 ## 6. AI Critique and Human Refinement
 
-**Prompt used (Prompt 2 from Week 10.1 Prompt Bank):**
-> "Critique this AstraNotes CI/CD plan. Identify which gates are too noisy, which important checks are missing, and which checks should not be blocking yet."
+Four prompts from the Week 10.1 Prompt Bank were applied to the actual AstraNotes repo state. Results and human decisions are recorded below.
 
-**AI suggestion 1 (accepted):**  
-AI suggested that running `pytest` with `-x` (stop on first failure) in the blocking job would provide faster feedback on commits. Accepted: adding `-x` to the stable-checks run would halve the feedback loop when a test breaks, making the gate more actionable.
+---
 
-*Human decision:* `-x` not added in this version because the test suite is fast enough (< 8 seconds total). Worth reconsidering if the suite grows beyond 30 seconds. Documented for future consideration.
+### Prompt 1 — CI/CD Plan Draft
 
-**AI suggestion 2 (rejected):**  
-AI suggested adding a `coverage` gate requiring minimum 80% line coverage as a blocking check.
+> *"Given this AstraNotes repo state, suggest commit, PR, and release checks. Label each as advisory or blocking and explain why."*
 
-*Human decision:* Rejected. Coverage thresholds are premature at this stage — the project has comprehensive business logic coverage but intentionally minimal coverage of the legacy `AstraNotes_v1/repositories/json_file_note_repository.py` (JSON-based legacy storage, no longer primary). A blanket 80% requirement would penalize deliberate architectural decisions. Coverage should be advisory, not blocking, until we define which modules are in scope.
+**AI output (key suggestions beyond our current plan):**
 
-**Final human decision:**  
-Two-job design (stable-checks blocking, advisory-checks non-blocking) is the correct approach for the current project maturity. The deprecation check is the right candidate for the advisory job because it is genuinely informative, currently unstable as a gate, and has a clear path to becoming a blocking gate after the `datetime.utcnow()` fix.
+| Stage | Suggested check | Gate | AI reasoning |
+|-------|----------------|------|--------------|
+| Commit | `python -m py_compile app/**/*.py` | Blocking | Syntax-only check, zero false positives, catches typos before test runner |
+| PR | Import smoke: `python -c "from app.main import app"` | Advisory | Catches import-time config errors not caught by unit tests |
+| Release | `bandit -r app/` security scan | Advisory | Good practice; unfamiliar tool baseline needed before making blocking |
+
+**Human decision:**
+- `py_compile` check: **deferred**. The existing pytest run already imports all modules, making a separate `py_compile` step redundant at current scale. Will reconsider if test startup time grows significantly.
+- Import smoke test: **noted for future**. The `conftest.py` `TestClient` instantiation already validates app startup on every test run.
+- `bandit` scan: **agreed — should be added as advisory**. Documented in Operational Risk section; not added to `ci.yml` in Sprint 10 to avoid scope creep.
+
+---
+
+### Prompt 2 — Quality Gate Critique
+
+> *"Critique this proposed AstraNotes CI/CD plan. Identify which gates are too noisy, which important checks are missing, and which checks should not be blocking yet."*
+
+**AI output:**
+
+*Too noisy / misclassified:* None found — `continue-on-error: true` on advisory-checks correctly prevents merge noise. ✅
+
+*Missing checks (AI identified):*
+1. **Dependency vulnerability scan** (`safety check` or `pip-audit`) — `requirements.txt` pins exact versions but no CVE check exists. Advisory candidate.
+2. **Startup smoke test** — `python -c "from app.main import app"` catches import-time configuration errors. Currently implicit in conftest, not explicit in CI.
+3. **Advisory-only on develop pushes** — running advisory-checks on every `develop` push creates noise; should trigger only on PRs to `main`.
+
+*Over-automation risk:* None in current design; two-job structure avoids it.
+
+**Human decision:**
+- Vulnerability scan: **accepted as future work**. `pip-audit` is lightweight and should be added as an advisory check in Sprint 11. Documented in sprint backlog.
+- Startup smoke: **rejected as redundant** (see Prompt 1 reasoning above).
+- Advisory trigger scope: **accepted**. Will narrow advisory-checks to `pull_request` trigger only in a follow-up commit — reduces noise on `develop` branch pushes without affecting PR review signal.
+
+---
+
+### Prompt 8 — Advisory vs Blocking Classification
+
+> *"Given these AstraNotes checks, classify each as advisory or blocking: build check, stable unit tests, flaky UI test, integration smoke test, coverage report, AI summary quality evaluation, security scan."*
+
+**AI classification output:**
+
+| Check | AI Classification | AI Reasoning |
+|-------|-----------------|--------------|
+| Build / syntax check | Blocking | Binary pass/fail, zero false positives |
+| Stable unit tests (81) | Blocking | High signal, consistent, fast, represents DoD |
+| Flaky UI test | Advisory | Non-deterministic → alarm fatigue if blocking |
+| Integration smoke test | Blocking (if stable) | Our `StaticPool` conftest makes these stable |
+| Coverage report | Advisory | Threshold enforcement premature without baseline |
+| AI summary quality eval | Advisory | No runtime AI yet; monitoring-only for now |
+| Security scan (`bandit`) | Advisory | Unfamiliar tool; false positives likely initially |
+
+**Human decision:** AI classification matches our implemented design exactly for the first five items. The AI correctly identifies that our integration tests are stable (due to `StaticPool`) and thus blocking-worthy — this is a non-obvious judgment that the AI got right because we provided the conftest context. Classification accepted as-is.
+
+---
+
+### Prompt 4 — Operational Risk Identification
+
+> *"Identify the top operational risks for AstraNotes if we add CI/CD and AI-assisted summary features."*
+
+**AI output (top 3 risks):**
+
+1. **Deprecation time-bomb** — `datetime.utcnow()` in `note.py` and `json_file_note_repository.py` will cause test failures on Python 3.13+. Advisory check surfaces it now; must resolve before any Python version upgrade.
+2. **Advisory fatigue** — if `advisory-checks` is consistently red, developers learn to ignore it. The advisory signal degrades to background noise. Mitigation: set a target date to promote advisory→blocking after deprecation fix.
+3. **AI output drift (future)** — once AI summaries are added, prompt/model changes can silently degrade quality with no automated detector. Mitigation: create a golden-output fixture (`tests/eval/golden_summaries.json`) as a future advisory check.
+
+**Human decision:**
+- Risk 1: **already mitigated** by advisory-checks job. Accepted.
+- Risk 2: **important new insight**. Added promotion target: advisory-checks should become blocking after `datetime.utcnow()` is replaced (target: before final submission 2026-06-03).
+- Risk 3: **out of scope for Sprint 10** — AstraNotes has no runtime AI feature. Documented as a future architectural consideration in `architecture_decision_log.md` backlog.
+
+---
+
+### Summary of Human Refinements
+
+| AI Suggestion | Decision | Reason |
+|--------------|----------|--------|
+| Add `py_compile` check | Deferred | Redundant with existing pytest import |
+| Add import smoke test | Deferred | Already implicit in `TestClient` conftest |
+| Add `bandit` security scan (advisory) | Accepted → future work | Added to Sprint 11 backlog |
+| Narrow advisory-checks to PR trigger only | Accepted → follow-up commit | Reduces develop-branch noise |
+| Advisory fatigue risk | Accepted as new operational risk | Set promotion target date |
+| AI summary drift golden fixture | Noted → future architectural item | Out of scope until AI feature exists |

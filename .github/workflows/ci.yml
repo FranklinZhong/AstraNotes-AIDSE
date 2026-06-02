@@ -1,6 +1,8 @@
 name: AstraNotes CI
 
-# Triggers: every push to main/develop, every PR targeting main
+# stable-checks  triggers on every push AND PR — blocking gate for all changes.
+# advisory-checks triggers on PR to main only — reduces develop-branch noise
+#                 while still surfacing technical debt before merge.
 on:
   push:
     branches: [main, develop]
@@ -10,9 +12,9 @@ on:
 # ── CI Design: Advisory vs Blocking ──────────────────────────────────────────
 # stable-checks  → BLOCKING gate. Fails the build if any of the 81 stable unit
 #                  and integration tests break. PRs cannot merge if this fails.
-# advisory-checks → ADVISORY gate (continue-on-error: true). Runs the full suite
-#                   with deprecation-warnings-as-errors to surface technical debt.
-#                   Result is informational; it NEVER blocks a PR merge.
+# advisory-checks → ADVISORY gate (continue-on-error: true). Runs only on PRs
+#                   (not every develop push). Surfaces deprecation debt without
+#                   adding noise to every branch push. NEVER blocks a PR merge.
 # ─────────────────────────────────────────────────────────────────────────────
 
 jobs:
@@ -68,6 +70,10 @@ jobs:
   advisory-checks:
     name: "Advisory Checks (Non-blocking) — Python ${{ matrix.python-version }}"
     runs-on: ubuntu-latest
+    # Only runs on PRs targeting main — not on every develop push.
+    # Rationale: advisory noise on branch pushes causes "alarm fatigue" where
+    # developers ignore the signal entirely (Prompt 2 critique finding).
+    if: github.event_name == 'pull_request'
     # continue-on-error: true is the key setting that makes this advisory.
     # Even if this job fails, PRs are not blocked and the workflow is not red.
     continue-on-error: true
