@@ -350,6 +350,39 @@ Close all Sprint 1 prerequisites (SZ-06, GOV-B-02~05, design issue decisions), t
 
 ---
 
+## Sprint 10 — CI/CD Workflow Design and Pipeline Improvement (Week 10, 2026-06-01)
+
+**Goal:** Apply Week 10.1 CI/CD lab concepts to AstraNotes; implement advisory vs blocking gate design; create formal CI/CD workflow deliverable.
+
+**Sprint Backlog:**
+- [x] Verify all 81 tests passing locally after Sprint 9 visibility-drift resolution
+- [x] Redesign `.github/workflows/ci.yml` with two-job structure: `stable-checks` (blocking) + `advisory-checks` (non-blocking, `continue-on-error: true`)
+- [x] Add JUnit XML artifact upload (`--junitxml`) for proper test result evidence
+- [x] Advisory job: `-W error::DeprecationWarning` check surfaces 213 `datetime.utcnow()` deprecation warnings as technical debt signal
+- [x] Create `planning/cicd_workflow_plan.md` — complete lab deliverable (6 sections)
+- [x] Scenario B selected: flaky/known technical debt gate (pre-existing visibility-drift tests + deprecation warnings)
+
+**Key Decisions:**
+- `stable-checks` job is blocking: 81 stable unit + integration tests, fast (< 8 sec), consistent signal since Sprint 7
+- `advisory-checks` job is non-blocking: deprecation-warnings-as-errors is a real signal but currently fails by design; `continue-on-error: true` ensures it never stops valid merges
+- JUnit XML replaces `.pytest_cache/` artifact: structured test results are more useful evidence for reviewers
+- Coverage threshold gate rejected: premature — legacy `json_file_note_repository.py` intentionally has lower coverage (architectural decision, not a gap)
+
+**AI Role:**
+- AI proposed two-job YAML structure based on lab prompt bank
+- AI suggested `-x` flag and 80% coverage gate; human reviewed both
+- `-x` deferred (suite < 8 sec; worth revisiting if suite grows); coverage gate rejected (penalizes intentional architectural scope decisions)
+- All CI changes verified locally before push
+
+**Outcome:** CI pipeline updated with advisory vs blocking gate design; `cicd_workflow_plan.md` covers all 6 lab sections; 81 tests still passing; deprecation technical debt surfaced as advisory signal.
+
+**Lessons Learned:**
+- `continue-on-error: true` is the key YAML setting that makes a job advisory without requiring a separate workflow file
+- Advisory checks are most valuable when they have a clear path to becoming blocking (the deprecation check becomes blocking after `datetime.utcnow()` replacement)
+- JUnit XML artifacts provide better evidence than cache directories — structured data is reviewable in GitHub PR summaries
+
+---
+
 ## Sprint Template (copy for each new Sprint)
 
 ```markdown

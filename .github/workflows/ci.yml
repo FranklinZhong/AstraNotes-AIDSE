@@ -1,13 +1,25 @@
 name: AstraNotes CI
 
+# Triggers: every push to main/develop, every PR targeting main
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main]
 
+# ── CI Design: Advisory vs Blocking ──────────────────────────────────────────
+# stable-checks  → BLOCKING gate. Fails the build if any of the 81 stable unit
+#                  and integration tests break. PRs cannot merge if this fails.
+# advisory-checks → ADVISORY gate (continue-on-error: true). Runs the full suite
+#                   with deprecation-warnings-as-errors to surface technical debt.
+#                   Result is informational; it NEVER blocks a PR merge.
+# ─────────────────────────────────────────────────────────────────────────────
+
 jobs:
-  test:
+
+  # ── Job 1: Stable Unit + Integration Tests (BLOCKING) ──────────────────────
+  stable-checks:
+    name: "Stable Checks (Blocking) — Python ${{ matrix.python-version }}"
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -33,17 +45,74 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: Run tests
-        run: python -m pytest -q --tb=short
+      - name: Run stable tests (blocking gate)
+        run: |
+          python -m pytest AstraNotes_v1/tests/ app/tests/ \
+            -q --tb=short \
+            --junitxml=test-results-${{ matrix.python-version }}.xml
         env:
           JWT_SECRET: ci-test-secret-key
           DATABASE_URL: "sqlite:///./test_ci.db"
           PYTHONIOENCODING: utf-8
 
-      - name: Upload test results
+      - name: Upload JUnit test results (evidence)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.python-version }}
-          path: .pytest_cache/
-          retention-days: 7
+          name: stable-test-results-py${{ matrix.python-version }}
+          path: test-results-${{ matrix.python-version }}.xml
+          retention-days: 14
+
+
+  # ── Job 2: Deprecation & Drift Check (ADVISORY — never blocks merge) ────────
+  advisory-checks:
+    name: "Advisory Checks (Non-blocking) — Python ${{ matrix.python-version }}"
+    runs-on: ubuntu-latest
+    # continue-on-error: true is the key setting that makes this advisory.
+    # Even if this job fails, PRs are not blocked and the workflow is not red.
+    continue-on-error: true
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-dev.txt') }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run deprecation-warning check (advisory — shows technical debt)
+        # -W error::DeprecationWarning turns deprecation warnings into failures.
+        # Expected to fail today (datetime.utcnow() calls in note.py).
+        # Advisory until the warnings are resolved. Tracks drift over time.
+        run: |
+          python -m pytest AstraNotes_v1/tests/ app/tests/ \
+            -q --tb=line \
+            -W error::DeprecationWarning \
+            --junitxml=advisory-results-${{ matrix.python-version }}.xml || true
+        env:
+          JWT_SECRET: ci-test-secret-key
+          DATABASE_URL: "sqlite:///./test_ci.db"
+          PYTHONIOENCODING: utf-8
+
+      - name: Upload advisory check results (informational evidence)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: advisory-results-py${{ matrix.python-version }}
+          path: advisory-results-${{ matrix.python-version }}.xml
+          retention-days: 14
