@@ -318,7 +318,7 @@ Behavioral security testing against running application:
 | Threat scope statement updated for web architecture | ✅ |
 | Sprint log covers Sprint 0 through Sprint 9 | ✅ |
 | Demo video recorded | ⏳ Weekend of June 1-2 |
-| Render deployment live | ⏳ Weekend of June 1-2 |
+| Online deployment (Render) | N/A — not required |
 | Canvas submission (GitHub link + video) | ⏳ June 3, before 11:59pm |
 
 #### Maintenance Notes

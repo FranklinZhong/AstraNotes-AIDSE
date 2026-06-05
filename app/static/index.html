@@ -235,16 +235,68 @@
       display: flex; align-items: center; gap: .3rem;
     }
     .ni-lock { color: var(--amber); font-size: .72rem; flex-shrink: 0; }
-    .ni-meta {
+    .ni-date {
       font-family: 'DM Mono', monospace; font-size: .64rem; letter-spacing: .03em;
-      color: var(--text3); margin-top: .2rem; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+      color: var(--text3); margin-top: .18rem;
+    }
+    .ni-tags {
+      display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .3rem;
     }
     .tag-pill {
       display: inline-block; padding: .04rem .35rem;
       background: rgba(200,168,75,.09); color: var(--gold-dim);
       border: 1px solid rgba(200,168,75,.18); border-radius: 3px;
       font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .04em;
+      cursor: pointer; transition: background .15s, border-color .15s;
     }
+    .tag-pill:hover { background: rgba(200,168,75,.2); border-color: var(--gold-dim); }
+    .tag-pill.active { background: rgba(200,168,75,.22); border-color: var(--gold); color: var(--gold); }
+
+    /* ── Sidebar tag panel ── */
+    .sidebar-tags-section { border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .sb-tags-toggle {
+      width: 100%; display: flex; justify-content: space-between; align-items: center;
+      padding: .4rem .875rem; background: none; border: none; cursor: pointer;
+      font-family: 'DM Mono', monospace; font-size: .64rem; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--text2); transition: color .15s;
+    }
+    .sb-tags-toggle:hover { color: var(--gold); }
+    .sb-tags-arrow { transition: transform .2s; font-size: .6rem; display: inline-block; }
+    .sb-tags-arrow.open { transform: rotate(90deg); }
+    .sb-tags-panel { padding: .4rem .875rem .6rem; display: flex; flex-wrap: wrap; gap: .3rem; }
+    .sb-tag-btn {
+      padding: .15rem .45rem; cursor: pointer; border-radius: 4px;
+      font-family: 'DM Mono', monospace; font-size: .63rem; letter-spacing: .04em;
+      background: rgba(200,168,75,.07); color: var(--gold-dim);
+      border: 1px solid rgba(200,168,75,.18); transition: all .15s;
+    }
+    .sb-tag-btn:hover { background: rgba(200,168,75,.18); border-color: var(--gold-dim); }
+    .sb-tag-btn.active { background: rgba(200,168,75,.22); border-color: var(--gold); color: var(--gold); }
+
+    /* ── Sidebar search ── */
+    .sidebar-search {
+      padding: .5rem .875rem .6rem; border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .sb-search-wrap {
+      display: flex; align-items: center; gap: .4rem;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 6px; padding: .3rem .5rem; transition: border-color .2s;
+    }
+    .sb-search-wrap:focus-within { border-color: var(--gold-dim); }
+    .sb-search-icon { color: var(--text3); font-size: .75rem; flex-shrink: 0; line-height: 1; }
+    .sb-search-input {
+      flex: 1; background: none; border: none; outline: none;
+      font-family: 'DM Mono', monospace; font-size: .68rem; letter-spacing: .03em;
+      color: var(--text); caret-color: var(--gold);
+    }
+    .sb-search-input::placeholder { color: var(--text3); }
+    .sb-search-clear {
+      background: none; border: none; cursor: pointer; color: var(--text3);
+      font-size: .8rem; line-height: 1; padding: 0 .1rem; transition: color .15s;
+      display: none;
+    }
+    .sb-search-clear:hover { color: var(--text); }
     .nl-empty {
       padding: 3rem 1rem; text-align: center; font-family: 'DM Mono', monospace;
       font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
@@ -629,6 +681,23 @@
           <span class="btn-new-icon">+</span> New Note
         </button>
       </div>
+      <div class="sidebar-search">
+        <div class="sb-search-wrap">
+          <span class="sb-search-icon">⊹</span>
+          <input id="sb-search" class="sb-search-input" type="text"
+                 placeholder="Search by title…"
+                 oninput="onSearchInput(this.value)"
+                 autocomplete="off" spellcheck="false">
+          <button class="sb-search-clear" id="sb-clear" onclick="clearSearch()" title="Clear">✕</button>
+        </div>
+      </div>
+      <div class="sidebar-tags-section">
+        <button class="sb-tags-toggle" onclick="toggleTagsPanel()">
+          <span>⊹ Tags</span>
+          <span id="sb-tags-arrow" class="sb-tags-arrow">▸</span>
+        </button>
+        <div id="sb-tags-panel" class="sb-tags-panel hidden"></div>
+      </div>
       <div id="note-list"></div>
     </aside>
 
@@ -697,6 +766,9 @@ let token       = localStorage.getItem('astranotes_token');
 let currentUser = localStorage.getItem('astranotes_user');
 let currentNoteId = null;
 let notes = [];
+let searchQuery = '';
+let activeTagFilter = '';
+let tagsPanelOpen = false;
 let authMode = 'login';
 let historyOpen = false;
 let unlockedNotes  = {};   // noteId → password string
@@ -1133,7 +1205,7 @@ async function loadNotes() {
   if (!res.ok) { showToast('Failed to load notes.', 'error'); return; }
   const data = await res.json();
   notes = data.notes || [];
-  renderNoteList();
+  renderNoteList(); renderTagCloud();
 }
 
 function renderNoteList() {
@@ -1142,18 +1214,78 @@ function renderNoteList() {
     c.innerHTML = '<div class="nl-empty">No notes yet<br>— begin writing —</div>';
     return;
   }
-  c.innerHTML = notes.map(n => `
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = notes.filter(n => {
+    const titleMatch = !q || n.title.toLowerCase().includes(q);
+    const tagMatch   = !activeTagFilter || (n.tags||[]).includes(activeTagFilter);
+    return titleMatch && tagMatch;
+  });
+  if (filtered.length === 0) {
+    let msg = 'No notes found';
+    if (q && activeTagFilter) msg = `No notes match<br>"${escapeHtml(q)}"<br>tagged "${escapeHtml(activeTagFilter)}"`;
+    else if (q)               msg = `No notes match<br>"${escapeHtml(q)}"`;
+    else if (activeTagFilter) msg = `No notes tagged<br>"${escapeHtml(activeTagFilter)}"`;
+    c.innerHTML = `<div class="nl-empty">${msg}</div>`;
+    return;
+  }
+  c.innerHTML = filtered.map(n => {
+    const tagHtml = (n.tags||[]).map(t =>
+      `<span class="tag-pill${t === activeTagFilter ? ' active' : ''}"
+        onclick="event.stopPropagation();toggleTagFilter('${escapeHtml(t)}')">${escapeHtml(t)}</span>`
+    ).join('');
+    return `
     <div class="note-item ${n.id === currentNoteId ? 'active' : ''}" onclick="selectNote('${n.id}')">
       <div class="ni-title">
         ${n.visibility === 'private' ? '<span class="ni-lock">⊗</span>' : ''}
         <span>${escapeHtml(n.title)}</span>
       </div>
-      <div class="ni-meta">
-        <span>${formatDate(n.updated_at)}</span>
-        ${(n.tags||[]).slice(0,2).map(t=>`<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}
-      </div>
+      <div class="ni-date">${formatDate(n.updated_at)}</div>
+      ${tagHtml ? `<div class="ni-tags">${tagHtml}</div>` : ''}
       <button class="ni-del-btn" onclick="event.stopPropagation();deleteNoteById('${n.id}')" title="Delete">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+function renderTagCloud() {
+  const allTags = [...new Set(notes.flatMap(n => n.tags || []))].sort();
+  const panel = document.getElementById('sb-tags-panel');
+  if (!panel) return;
+  if (allTags.length === 0) {
+    panel.innerHTML = '<span style="font-family:\'DM Mono\',monospace;font-size:.6rem;color:var(--text3);letter-spacing:.05em">No tags yet</span>';
+    return;
+  }
+  panel.innerHTML = allTags.map(t =>
+    `<button class="sb-tag-btn${t === activeTagFilter ? ' active' : ''}"
+      onclick="toggleTagFilter('${escapeHtml(t)}')">${escapeHtml(t)}</button>`
+  ).join('');
+}
+
+function toggleTagsPanel() {
+  tagsPanelOpen = !tagsPanelOpen;
+  document.getElementById('sb-tags-panel').classList.toggle('hidden', !tagsPanelOpen);
+  document.getElementById('sb-tags-arrow').classList.toggle('open', tagsPanelOpen);
+}
+
+function toggleTagFilter(tag) {
+  activeTagFilter = (activeTagFilter === tag) ? '' : tag;
+  renderTagCloud();
+  renderNoteList();
+}
+
+function onSearchInput(val) {
+  searchQuery = val;
+  const clearBtn = document.getElementById('sb-clear');
+  if (clearBtn) clearBtn.style.display = val ? 'block' : 'none';
+  renderNoteList();
+}
+
+function clearSearch() {
+  searchQuery = '';
+  const input = document.getElementById('sb-search');
+  if (input) input.value = '';
+  const clearBtn = document.getElementById('sb-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  renderNoteList();
 }
 
 async function deleteNoteById(id) {
@@ -1167,7 +1299,7 @@ async function deleteNoteById(id) {
   delete unlockedNotes[id]; delete noteLastAccess[id]; delete pwFailCounts[id];
   notes = notes.filter(n => n.id !== id);
   if (currentNoteId === id) resetEditor();
-  renderNoteList();
+  renderNoteList(); renderTagCloud();
 }
 
 async function createNote() {
@@ -1176,7 +1308,7 @@ async function createNote() {
   if (res.status !== 201) { showToast(await errorDetail(res), 'error'); return; }
   const note = await res.json();
   notes.unshift(note); currentNoteId = note.id;
-  renderNoteList(); loadEditor(note);
+  renderNoteList(); renderTagCloud(); loadEditor(note);
 }
 
 async function selectNote(id) {
@@ -1307,7 +1439,7 @@ async function saveNote({ silent = false } = {}) {
 
   const idx = notes.findIndex(n => n.id === currentNoteId);
   if (idx !== -1) notes[idx] = updated;
-  renderNoteList(); loadEditor(updated);
+  renderNoteList(); renderTagCloud(); loadEditor(updated);
   _setSaveStatus('saved');
   _isSaving = false;
   if (historyOpen) loadHistory();

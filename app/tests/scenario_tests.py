@@ -1,7 +1,7 @@
 """
 AstraNotes — 50 User Scenario Tests
 Runs against a live server at BASE_URL.
-Usage: python user_scenario_tests.py
+Usage: python app/tests/scenario_tests.py
 """
 import sys
 import time
@@ -11,7 +11,7 @@ import requests
 
 BASE_URL = "http://127.0.0.1:8001"
 
-# 每次运行使用唯一用户名，避免 DB 残留冲突
+# Use a unique suffix each run to avoid conflicts with leftover DB data
 _suffix = "".join(random.choices(string.ascii_lowercase, k=6))
 ALICE = f"alice_{_suffix}"
 BOB   = f"bob_{_suffix}"
@@ -20,7 +20,6 @@ BOB   = f"bob_{_suffix}"
 
 PASS = "\033[32m✅ PASS\033[0m"
 FAIL = "\033[31m❌ FAIL\033[0m"
-WARN = "\033[33m⚠️  WARN\033[0m"
 
 results = []
 
@@ -35,15 +34,13 @@ def check(num: int, desc: str, passed: bool, detail: str = ""):
 
 
 def register(username, password):
-    r = requests.post(f"{BASE_URL}/auth/register",
-                      json={"username": username, "password": password})
-    return r
+    return requests.post(f"{BASE_URL}/auth/register",
+                         json={"username": username, "password": password})
 
 
 def login(username, password):
-    r = requests.post(f"{BASE_URL}/auth/login",
-                      json={"username": username, "password": password})
-    return r
+    return requests.post(f"{BASE_URL}/auth/login",
+                         json={"username": username, "password": password})
 
 
 def token_header(token):
@@ -92,7 +89,7 @@ def delete_note(token, note_id):
 
 # ── wait for server ───────────────────────────────────────────────────────────
 
-print("\n━━━ Waiting for server ━━━")
+print("\n--- Waiting for server ---")
 for _ in range(20):
     try:
         requests.get(f"{BASE_URL}/health", timeout=1)
@@ -105,327 +102,326 @@ else:
     sys.exit(1)
 
 # ════════════════════════════════════════════════════════════════════════════
-print("━━━ 一、用户注册与认证 (1~10) ━━━")
+print("--- Section 1: User Registration & Authentication (1~10) ---")
 # ════════════════════════════════════════════════════════════════════════════
 
-# 1. Alice 正常注册
+# 1. Alice registers successfully
 r = register(ALICE, "securepass123")
 alice_token = safe_json(r).get("access_token", "") if r.status_code == 201 else ""
-check(1, f"Alice({ALICE}) 注册 → 201 + access_token", r.status_code == 201 and bool(alice_token))
+check(1, f"Alice({ALICE}) register → 201 + access_token", r.status_code == 201 and bool(alice_token))
 
-# 2. Bob 正常注册
+# 2. Bob registers successfully
 r = register(BOB, "bobpass456")
 bob_token = safe_json(r).get("access_token", "") if r.status_code == 201 else ""
-check(2, f"Bob({BOB}) 注册 → 201 + access_token", r.status_code == 201 and bool(bob_token))
+check(2, f"Bob({BOB}) register → 201 + access_token", r.status_code == 201 and bool(bob_token))
 
-# 3. 重复注册同一用户名 → 400
+# 3. Duplicate username → 400
 r = register(ALICE, "anotherpass")
-check(3, "重复用户名注册 → 400 Bad Request", r.status_code == 400,
+check(3, "Duplicate username register → 400 Bad Request", r.status_code == 400,
       safe_json(r).get("detail", ""))
 
-# 4. Alice 用正确密码登录 → 200 + token
+# 4. Alice logs in with correct password → 200 + token
 r = login(ALICE, "securepass123")
 alice_token2 = safe_json(r).get("access_token", "") if r.status_code == 200 else ""
-check(4, "Alice 正确密码登录 → 200 + token", r.status_code == 200 and bool(alice_token2))
-alice_token = alice_token2  # 使用最新 token
+check(4, "Alice correct password login → 200 + token", r.status_code == 200 and bool(alice_token2))
+alice_token = alice_token2
 
-# 5. Alice 用错误密码登录 → 401
+# 5. Alice logs in with wrong password → 401
 r = login(ALICE, "wrongpassword")
-check(5, "错误密码登录 → 401 Unauthorized", r.status_code == 401,
+check(5, "Wrong password login → 401 Unauthorized", r.status_code == 401,
       safe_json(r).get("detail", ""))
 
-# 6. 不存在的用户登录 → 401
+# 6. Non-existent user login → 401
 r = login("ghost_user_xyz", "anypass")
-check(6, "不存在用户登录 → 401 Unauthorized", r.status_code == 401,
+check(6, "Non-existent user login → 401 Unauthorized", r.status_code == 401,
       safe_json(r).get("detail", ""))
 
-# 7. 无 token 访问 /notes/ → 401
+# 7. No token accessing /notes/ → 401
 r = requests.get(f"{BASE_URL}/notes/")
-check(7, "无 token 访问 /notes/ → 401", r.status_code == 401,
+check(7, "No token GET /notes/ → 401", r.status_code == 401,
       f"got {r.status_code}")
 
-# 8. 无效 token 访问 /notes/ → 401
+# 8. Invalid token accessing /notes/ → 401
 r = requests.get(f"{BASE_URL}/notes/",
                  headers={"Authorization": "Bearer invalid.jwt.token"})
-check(8, "无效 token 访问 /notes/ → 401", r.status_code == 401,
+check(8, "Invalid token GET /notes/ → 401", r.status_code == 401,
       f"got {r.status_code}")
 
-# 9. 空用户名注册 → 422 Validation Error
+# 9. Empty username → 422 Validation Error
 r = register("", "somepass")
-check(9, "空用户名注册 → 422 Validation Error", r.status_code == 422,
+check(9, "Empty username register → 422 Validation Error", r.status_code == 422,
       f"got {r.status_code}")
 
-# 10. 空密码注册 → 422 Validation Error
+# 10. Empty password → 422 Validation Error
 r = register("newuser", "")
-check(10, "空密码注册 → 422 Validation Error", r.status_code == 422,
+check(10, "Empty password register → 422 Validation Error", r.status_code == 422,
       f"got {r.status_code}")
 
 # ════════════════════════════════════════════════════════════════════════════
-print("\n━━━ 二、创建笔记 (11~18) ━━━")
+print("\n--- Section 2: Create Notes (11~18) ---")
 # ════════════════════════════════════════════════════════════════════════════
 
-# 11. Alice 创建公开笔记
+# 11. Alice creates a public note
 r = create_note(alice_token, "Alice Public Note", "Hello world", "public")
 alice_pub_id = r.json().get("id", "") if r.status_code == 201 else ""
-check(11, "Alice 创建公开笔记 → 201", r.status_code == 201 and bool(alice_pub_id),
+check(11, "Alice creates public note → 201", r.status_code == 201 and bool(alice_pub_id),
       f"id={alice_pub_id}")
 
-# 12. Alice 创建私有笔记
+# 12. Alice creates a private note
 r = create_note(alice_token, "Alice Private Note", "Secret content", "private")
 alice_priv_id = r.json().get("id", "") if r.status_code == 201 else ""
-check(12, "Alice 创建私有笔记 → 201", r.status_code == 201 and bool(alice_priv_id),
+check(12, "Alice creates private note → 201", r.status_code == 201 and bool(alice_priv_id),
       f"id={alice_priv_id}")
 
-# 13. Alice 创建带 tags 的笔记
+# 13. Alice creates a tagged note
 r = create_note(alice_token, "Alice Tagged Note", "Python content",
                 "public", tags=["Python", "AI"])
 alice_tagged_id = r.json().get("id", "") if r.status_code == 201 else ""
-check(13, "Alice 创建带 tags 笔记 → 201，tags=[Python, AI]",
+check(13, "Alice creates note with tags=[Python, AI] → 201",
       r.status_code == 201 and bool(alice_tagged_id),
       f"tags={r.json().get('tags', [])}")
 
-# 14. Bob 创建公开笔记
+# 14. Bob creates a public note
 r = create_note(bob_token, "Bob Public Note", "Bob says hello", "public")
 bob_pub_id = r.json().get("id", "") if r.status_code == 201 else ""
-check(14, "Bob 创建公开笔记 → 201", r.status_code == 201 and bool(bob_pub_id))
+check(14, "Bob creates public note → 201", r.status_code == 201 and bool(bob_pub_id))
 
-# 15. Bob 创建私有笔记
+# 15. Bob creates a private note
 r = create_note(bob_token, "Bob Private Note", "Bob secret", "private")
 bob_priv_id = r.json().get("id", "") if r.status_code == 201 else ""
-check(15, "Bob 创建私有笔记 → 201", r.status_code == 201 and bool(bob_priv_id))
+check(15, "Bob creates private note → 201", r.status_code == 201 and bool(bob_priv_id))
 
-# 16. 空标题创建笔记 → 422
+# 16. Empty title → 422
 r = create_note(alice_token, "", "body content")
-check(16, "空标题创建笔记 → 422", r.status_code == 422,
+check(16, "Empty title → 422", r.status_code == 422,
       f"got {r.status_code}")
 
-# 17. 纯空白标题创建笔记 → 422/400（whitespace 验证）
+# 17. Whitespace-only title → 422/400
 r = create_note(alice_token, "   ", "body content")
-check(17, "纯空白标题创建笔记 → 422/400（whitespace 拦截）",
+check(17, "Whitespace-only title → 422/400 (whitespace validation)",
       r.status_code in (400, 422),
       f"got {r.status_code}: {r.json()}")
 
-# 18. body 为空（None）→ 应该成功（body 是可选的）
+# 18. No body (optional field) → 201
 r = create_note(alice_token, "Note Without Body")
-check(18, "body 为空（可选字段）→ 201 成功", r.status_code == 201,
+check(18, "No body (optional) → 201", r.status_code == 201,
       f"got {r.status_code}")
 
 # ════════════════════════════════════════════════════════════════════════════
-print("\n━━━ 三、列表查询（list） (19~26) ━━━")
+print("\n--- Section 3: List Notes (19~26) ---")
 # ════════════════════════════════════════════════════════════════════════════
 
-# 19. Alice 列出笔记：能看到自己的全部 + Bob 的公开笔记
+# 19. Alice lists notes: sees own public + private
 r = list_notes(alice_token)
 alice_list = safe_json(r).get("notes", []) if r.status_code == 200 else []
 alice_ids_in_list = [n["id"] for n in alice_list]
-check(19, "Alice 列表：能看到自己的公开+私有笔记",
+check(19, "Alice list: sees own public + private notes",
       alice_pub_id in alice_ids_in_list and alice_priv_id in alice_ids_in_list,
-      f"total={safe_json(r).get('total',0)}")
+      f"total={safe_json(r).get('total', 0)}")
 
-# 20. Alice 列表：能看到 Bob 的公开笔记
-check(20, "Alice 列表：能看到 Bob 的公开笔记",
+# 20. Alice list: sees Bob's public note
+check(20, "Alice list: sees Bob's public note",
       bob_pub_id in alice_ids_in_list,
-      f"bob_pub_id={'✅' if bob_pub_id in alice_ids_in_list else '❌'}")
+      f"bob_pub_id={'found' if bob_pub_id in alice_ids_in_list else 'missing'}")
 
-# 21. Alice 列表：看不到 Bob 的私有笔记
-check(21, "Alice 列表：看不到 Bob 的私有笔记",
+# 21. Alice list: cannot see Bob's private note
+check(21, "Alice list: cannot see Bob's private note",
       bob_priv_id not in alice_ids_in_list,
-      f"bob_priv_id={'隐藏✅' if bob_priv_id not in alice_ids_in_list else '泄露❌'}")
+      f"bob_priv_id={'hidden (correct)' if bob_priv_id not in alice_ids_in_list else 'EXPOSED (bug)'}")
 
-# 22. Bob 列表：看不到 Alice 的私有笔记
+# 22. Bob list: cannot see Alice's private note
 r = list_notes(bob_token)
 bob_list = r.json().get("notes", []) if r.status_code == 200 else []
 bob_ids_in_list = [n["id"] for n in bob_list]
-check(22, "Bob 列表：看不到 Alice 的私有笔记",
+check(22, "Bob list: cannot see Alice's private note",
       alice_priv_id not in bob_ids_in_list,
-      f"alice_priv_id={'隐藏✅' if alice_priv_id not in bob_ids_in_list else '泄露❌'}")
+      f"alice_priv_id={'hidden (correct)' if alice_priv_id not in bob_ids_in_list else 'EXPOSED (bug)'}")
 
-# 23. 按 tag 过滤：只返回含 "Python" 的笔记
+# 23. Tag filter [Python]: returns only notes with that tag
 r = list_notes(alice_token, tags=["Python"])
 tagged_ids = [n["id"] for n in r.json().get("notes", [])]
-check(23, "Tag 过滤 [Python]：只返回含该 tag 的笔记",
+check(23, "Tag filter [Python]: returns only matching notes",
       alice_tagged_id in tagged_ids and bob_pub_id not in tagged_ids,
       f"matched={len(tagged_ids)} note(s)")
 
-# 24. 过滤不存在的 tag → 返回空列表
+# 24. Non-existent tag → empty list
 r = list_notes(alice_token, tags=["NonExistentTag99"])
-check(24, "过滤不存在 tag → 返回空列表",
+check(24, "Non-existent tag filter → empty list",
       r.json().get("total", -1) == 0,
       f"total={r.json().get('total')}")
 
-# 25. Tag 区分大小写："python"（小写）≠ "Python"
+# 25. Tag is case-sensitive: 'python' != 'Python'
 r = list_notes(alice_token, tags=["python"])
-check(25, "Tag 大小写敏感：'python' 不匹配 'Python'",
+check(25, "Tag case-sensitive: 'python' does not match 'Python'",
       alice_tagged_id not in [n["id"] for n in r.json().get("notes", [])],
-      f"matched={r.json().get('total',0)}")
+      f"matched={r.json().get('total', 0)}")
 
-# 26. 未认证用户访问 /notes/ → 401
+# 26. Unauthenticated access to /notes/ → 401
 r = requests.get(f"{BASE_URL}/notes/")
-check(26, "未认证访问 /notes/ → 401", r.status_code == 401)
+check(26, "Unauthenticated GET /notes/ → 401", r.status_code == 401)
 
 # ════════════════════════════════════════════════════════════════════════════
-print("\n━━━ 四、按 ID 获取笔记 (27~32) ━━━")
+print("\n--- Section 4: Get Note by ID (27~32) ---")
 # ════════════════════════════════════════════════════════════════════════════
 
-# 27. Alice 获取自己的公开笔记 → 200
+# 27. Alice gets her own public note → 200
 r = get_note(alice_token, alice_pub_id)
-check(27, "Alice 获取自己公开笔记 by ID → 200",
+check(27, "Alice gets own public note by ID → 200",
       r.status_code == 200 and r.json().get("id") == alice_pub_id)
 
-# 28. Alice 获取自己的私有笔记 → 200
+# 28. Alice gets her own private note → 200
 r = get_note(alice_token, alice_priv_id)
-check(28, "Alice 获取自己私有笔记 by ID → 200",
+check(28, "Alice gets own private note by ID → 200",
       r.status_code == 200 and r.json().get("id") == alice_priv_id)
 
-# 29. Bob 获取 Alice 的公开笔记 by ID → 200
+# 29. Bob gets Alice's public note → 200
 r = get_note(bob_token, alice_pub_id)
-check(29, "Bob 获取 Alice 公开笔记 by ID → 200", r.status_code == 200)
+check(29, "Bob gets Alice's public note by ID → 200", r.status_code == 200)
 
-# 30. Bob 获取 Alice 的私有笔记 by ID → 403
+# 30. Bob gets Alice's private note → 403
 r = get_note(bob_token, alice_priv_id)
-check(30, "Bob 获取 Alice 私有笔记 by ID → 403 Access Denied",
+check(30, "Bob gets Alice's private note by ID → 403 Access Denied",
       r.status_code == 403, r.json().get("detail", ""))
 
-# 31. 获取不存在的笔记 ID → 404
+# 31. Non-existent note ID → 404
 r = get_note(alice_token, "00000000-0000-0000-0000-000000000000")
-check(31, "获取不存在的 note_id → 404", r.status_code == 404)
+check(31, "Non-existent note_id → 404", r.status_code == 404)
 
-# 32. 无 token 获取笔记 → 401
+# 32. No token get note → 401
 r = requests.get(f"{BASE_URL}/notes/{alice_pub_id}")
-check(32, "无 token 获取 note by ID → 401", r.status_code == 401)
+check(32, "No token GET note by ID → 401", r.status_code == 401)
 
 # ════════════════════════════════════════════════════════════════════════════
-print("\n━━━ 五、更新笔记 (33~39) ━━━")
+print("\n--- Section 5: Update Notes (33~39) ---")
 # ════════════════════════════════════════════════════════════════════════════
 
-# 33. Alice 更新自己笔记的标题 → 200
+# 33. Alice updates her note title → 200
 r = update_note(alice_token, alice_pub_id, title="Alice Public Note (Updated)")
-check(33, "Alice 更新自己笔记标题 → 200",
+check(33, "Alice updates own note title → 200",
       r.status_code == 200 and "Updated" in r.json().get("title", ""),
-      f"new title: {r.json().get('title','')}")
+      f"new title: {r.json().get('title', '')}")
 
-# 34. Alice 更新自己笔记的 body → 200
+# 34. Alice updates her note body → 200
 r = update_note(alice_token, alice_pub_id, body="Updated body content")
-check(34, "Alice 更新自己笔记 body → 200",
+check(34, "Alice updates own note body → 200",
       r.status_code == 200 and r.json().get("body") == "Updated body content")
 
-# 35. Alice 将公开笔记改为私有 → 200
+# 35. Alice makes public note private → 200
 r = update_note(alice_token, alice_pub_id, visibility="private")
-check(35, "Alice 将公开笔记改为私有 → 200",
+check(35, "Alice sets note to private → 200",
       r.status_code == 200 and r.json().get("visibility") == "private")
 
-# 36. Alice 将私有笔记改回公开 → 200
+# 36. Alice makes private note public → 200
 r = update_note(alice_token, alice_pub_id, visibility="public")
-check(36, "Alice 将私有笔记改回公开 → 200",
+check(36, "Alice sets note back to public → 200",
       r.status_code == 200 and r.json().get("visibility") == "public")
 
-# 37. Bob 尝试修改 Alice 的笔记 → 403
+# 37. Bob tries to update Alice's note → 403
 r = update_note(bob_token, alice_pub_id, title="Hacked!")
-check(37, "Bob 尝试修改 Alice 的笔记 → 403 Access Denied",
+check(37, "Bob tries to update Alice's note → 403 Access Denied",
       r.status_code == 403, r.json().get("detail", ""))
 
-# 38. 更新为纯空白标题 → 422/400
+# 38. Update to whitespace-only title → 422/400
 r = update_note(alice_token, alice_pub_id, title="   ")
-check(38, "更新为纯空白标题 → 422/400（whitespace 拦截）",
+check(38, "Update to whitespace-only title → 422/400",
       r.status_code in (400, 422),
       f"got {r.status_code}")
 
-# 39. 更新不存在的笔记 → 404
+# 39. Update non-existent note → 404
 r = update_note(alice_token, "00000000-0000-0000-0000-000000000000", title="Ghost")
-check(39, "更新不存在的 note → 404", r.status_code == 404)
+check(39, "Update non-existent note → 404", r.status_code == 404)
 
 # ════════════════════════════════════════════════════════════════════════════
-print("\n━━━ 六、删除笔记 (40~45) ━━━")
+print("\n--- Section 6: Delete Notes (40~45) ---")
 # ════════════════════════════════════════════════════════════════════════════
 
-# 先创建一个临时笔记供删除用
+# Create a temporary note for deletion tests
 r = create_note(alice_token, "Alice Temp Note To Delete", "will be deleted")
 alice_del_id = r.json().get("id", "") if r.status_code == 201 else ""
 
-# 40. Bob 尝试删除 Alice 的笔记 → 403
+# 40. Bob tries to delete Alice's note → 403
 r = delete_note(bob_token, alice_del_id)
-check(40, "Bob 尝试删除 Alice 的笔记 → 403", r.status_code == 403)
+check(40, "Bob tries to delete Alice's note → 403", r.status_code == 403)
 
-# 41. Alice 删除自己的笔记 → 204
+# 41. Alice deletes her own note → 204
 r = delete_note(alice_token, alice_del_id)
-check(41, "Alice 删除自己的笔记 → 204 No Content", r.status_code == 204)
+check(41, "Alice deletes own note → 204 No Content", r.status_code == 204)
 
-# 42. 验证已删除的笔记不可访问 → 404
+# 42. Deleted note is gone → 404
 r = get_note(alice_token, alice_del_id)
-check(42, "已删除笔记 GET → 404（确认消失）", r.status_code == 404)
+check(42, "Deleted note GET → 404", r.status_code == 404)
 
-# 43. 再次删除同一笔记 → 404
+# 43. Delete same note again → 404
 r = delete_note(alice_token, alice_del_id)
-check(43, "重复删除 → 404 Not Found", r.status_code == 404)
+check(43, "Delete already-deleted note → 404", r.status_code == 404)
 
-# 44. Alice 删除自己的私有笔记 → 204
+# 44. Alice deletes her own private note → 204
 r = create_note(alice_token, "Alice Private To Delete", "secret", "private")
 del_priv_id = r.json().get("id", "") if r.status_code == 201 else ""
 r = delete_note(alice_token, del_priv_id)
-check(44, "Alice 删除自己私有笔记 → 204", r.status_code == 204)
+check(44, "Alice deletes own private note → 204", r.status_code == 204)
 
-# 45. Bob 删除自己的笔记 → 204
+# 45. Bob deletes his own note → 204
 r = create_note(bob_token, "Bob Note To Delete", "bye")
 bob_del_id = r.json().get("id", "") if r.status_code == 201 else ""
 r = delete_note(bob_token, bob_del_id)
-check(45, "Bob 删除自己的笔记 → 204", r.status_code == 204)
+check(45, "Bob deletes own note → 204", r.status_code == 204)
 
 # ════════════════════════════════════════════════════════════════════════════
-print("\n━━━ 七、隐私隔离与可见性切换 (46~50) ━━━")
+print("\n--- Section 7: Privacy Isolation & Visibility Toggle (46~50) ---")
 # ════════════════════════════════════════════════════════════════════════════
 
-# 46. Alice 把笔记改为私有 → Bob 的列表中消失
+# 46. Alice makes note private → disappears from Bob's list
 r = update_note(alice_token, alice_pub_id, visibility="private")
 r2 = list_notes(bob_token)
 bob_ids = [n["id"] for n in safe_json(r2).get("notes", [])]
-check(46, "Alice 笔记改私有后 → 从 Bob 列表消失",
+check(46, "Alice note set private → disappears from Bob's list",
       r.status_code == 200 and alice_pub_id not in bob_ids,
-      f"update={r.status_code} list={r2.status_code} 隐藏={'✅' if alice_pub_id not in bob_ids else '❌'}")
+      f"update={r.status_code} hidden={'yes' if alice_pub_id not in bob_ids else 'NO (bug)'}")
 
-# 47. Alice 把笔记改为私有 → Bob by ID 获取 → 403
+# 47. Alice note now private → Bob gets 403 by ID
 r = get_note(bob_token, alice_pub_id)
-check(47, "Alice 笔记私有后 → Bob by ID 获取 → 403",
+check(47, "Alice note private → Bob GET by ID → 403",
       r.status_code == 403, f"got {r.status_code}")
 
-# 48. Alice 把笔记改回公开 → Bob 列表重新出现
+# 48. Alice makes note public again → reappears in Bob's list
 r = update_note(alice_token, alice_pub_id, visibility="public")
 r2 = list_notes(bob_token)
 bob_ids = [n["id"] for n in safe_json(r2).get("notes", [])]
-check(48, "Alice 笔记改回公开后 → 重新出现在 Bob 列表",
+check(48, "Alice note set public again → reappears in Bob's list",
       r.status_code == 200 and alice_pub_id in bob_ids,
-      f"update={r.status_code} list={r2.status_code} 可见={'✅' if alice_pub_id in bob_ids else '❌'}")
+      f"update={r.status_code} visible={'yes' if alice_pub_id in bob_ids else 'NO (bug)'}")
 
-# 49. Alice 始终能看到自己的私有笔记（在自己列表中）
+# 49. Alice always sees her own private notes in list
 r = list_notes(alice_token)
 alice_ids = [n["id"] for n in safe_json(r).get("notes", [])]
-check(49, "Alice 始终能看到自己的私有笔记（列表中）",
+check(49, "Alice always sees own private note in her list",
       alice_priv_id in alice_ids,
-      f"私有笔记{'可见✅' if alice_priv_id in alice_ids else '消失❌'}")
+      f"private note {'visible' if alice_priv_id in alice_ids else 'MISSING (bug)'}")
 
-# 50. Bob 的私有笔记始终对 Alice 不可见（列表 + by ID 双重验证）
+# 50. Bob's private note: invisible to Alice in list + 403 by ID
 r1 = list_notes(alice_token)
 alice_ids = [n["id"] for n in safe_json(r1).get("notes", [])]
 r2 = get_note(alice_token, bob_priv_id)
-check(50, "Bob 私有笔记：Alice 列表不可见 且 by ID → 403",
+check(50, "Bob private note: not in Alice's list AND 403 by ID",
       bob_priv_id not in alice_ids and r2.status_code == 403,
-      f"列表隐藏={'✅' if bob_priv_id not in alice_ids else '❌'}  ID访问={r2.status_code}")
+      f"list hidden={'yes' if bob_priv_id not in alice_ids else 'NO'}  ID={r2.status_code}")
 
 # ════════════════════════════════════════════════════════════════════════════
-print("\n━━━ 汇总 ━━━")
+print("\n--- Summary ---")
 # ════════════════════════════════════════════════════════════════════════════
 passed = sum(results)
 total = len(results)
 failed = total - passed
-print(f"\n总计：{total} 个场景")
-print(f"  \033[32m✅ 通过：{passed}\033[0m")
+print(f"\nTotal: {total} scenarios")
+print(f"  \033[32m✅ Passed: {passed}\033[0m")
 if failed:
-    print(f"  \033[31m❌ 失败：{failed}\033[0m")
+    print(f"  \033[31m❌ Failed: {failed}\033[0m")
 else:
-    print("  🎉 全部通过！")
+    print("  All scenarios passed!")
 
-# 列出失败的序号
 failed_nums = [i + 1 for i, r in enumerate(results) if not r]
 if failed_nums:
-    print(f"\n失败场景编号：{failed_nums}")
+    print(f"\nFailed scenario numbers: {failed_nums}")
 
 sys.exit(0 if failed == 0 else 1)

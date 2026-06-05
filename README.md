@@ -1,19 +1,19 @@
 # AstraNotes
 
-A secure, multi-user note-taking web application built with Python, FastAPI, and SQLite.
-
+A secure, multi-user note-taking web application built with Python, FastAPI, and SQLite. Built across Spring 2026 as the capstone project for CSEN 296B-2 (AI-Driven Software Development) at Santa Clara University.
 
 ## Features
 
-- **Multi-user**: Each user's notes are owner-only; access control enforced at the service layer via `PrivacyPolicy`
-- **JWT Authentication**: Secure register/login with bcrypt password hashing
+- **JWT Authentication**: Secure register/login with bcrypt password hashing; token stored in `localStorage`, sent as Bearer on every request
+- **Multi-user Access Control**: Each user's notes are owner-only; `NotePrivacyPolicy` enforces access at the service layer, not just the HTTP layer
 - **Full Note CRUD**: Create, read, update, delete notes via REST API
-- **Visibility & Note Passwords**: Private notes can be password-protected (`X-Note-Password` header); emergency unlock via account password clears the note hash
-- **Auto-Save**: Web UI auto-saves 2 seconds after typing stops; status indicator (Unsaved / Saving… / Saved)
-- **Web UI**: Single-page application served alongside the API
-- **Tags & Filtering**: Tag notes and filter by tags (AND semantics — all specified tags must be present)
-- **Version History**: Every note tracks create/update/revert snapshots; restore any past version via API
-- **Tested**: 81 tests across unit, integration, and API layers (75 passing; 6 pre-existing visibility-drift failures tracked)
+- **Visibility & Note Passwords**: Private notes can be password-protected (`X-Note-Password` header); emergency unlock via account password
+- **Tags & Filtering**: Tag notes and filter by tag (AND semantics — all specified tags must be present via `?tags=a&tags=b`)
+- **Version History**: Every save creates a snapshot; restore any past version via API or Web UI history panel
+- **Auto-Save**: Web UI auto-saves 2 seconds after typing stops; Unsaved → Saving… → Saved status indicator
+- **Sidebar Search & Tag Filter**: Search notes by title; expandable tag panel lets you click any tag to filter the note list; both filters combine with AND logic
+- **Single-Page Web UI**: Dark-themed UI served alongside the API at `http://localhost:8000`
+- **CI/CD**: GitHub Actions runs full test suite on Python 3.11 and 3.12 on every push
 
 ## Quick Start
 
@@ -25,7 +25,7 @@ A secure, multi-user note-taking web application built with Python, FastAPI, and
 ### Setup
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/FranklinZhong/AstraNotes-AIDSE
 cd AstraNotes
 
 # Create virtual environment (recommended)
@@ -37,7 +37,7 @@ pip install -r requirements.txt
 
 # Configure environment (optional)
 cp .env.example .env
-# Edit .env to set JWT_SECRET for production
+# Edit .env to set JWT_SECRET for production use
 ```
 
 ### Run locally
@@ -46,46 +46,63 @@ cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
-Open http://localhost:8000 for the web UI, or http://localhost:8000/docs for the interactive API docs.
+Open **http://localhost:8000** for the web UI, or **http://localhost:8000/docs** for the interactive API docs.
 
 ## Architecture
 
+Three-layer clean architecture — each layer depends only on the one below it:
+
 ```
 AstraNotes/
-├── app/                          # FastAPI web layer
-│   ├── main.py                   # App entry point, routes, static file serving
-│   ├── config.py                 # Settings (JWT secret, DB URL)
-│   ├── auth/                     # JWT token creation & verification
+├── app/                              # Layer 1: FastAPI Web API
+│   ├── main.py                       # Entry point, CORS, static serving
+│   ├── config.py                     # Settings (JWT secret, DB URL via env)
+│   ├── auth/                         # JWT creation & verification
+│   │   ├── jwt.py
+│   │   └── dependencies.py           # FastAPI dependency: get_current_user
 │   ├── routers/
-│   │   ├── auth.py               # POST /auth/register, /auth/login
-│   │   ├── notes.py              # CRUD /notes/ + note password enforcement
-│   │   └── history.py            # GET /notes/{id}/versions, POST /notes/{id}/revert/{v}
-│   ├── schemas/                  # Pydantic request/response models
+│   │   ├── auth.py                   # POST /auth/register, /auth/login
+│   │   ├── notes.py                  # CRUD /notes/ + note password enforcement
+│   │   └── history.py                # GET /notes/{id}/versions, POST /notes/{id}/revert/{v}
+│   ├── schemas/                      # Pydantic request/response models
 │   ├── db/
-│   │   └── sqlite_repository.py  # SQLite adapter (SQLAlchemy Core)
-│   ├── service_deps.py           # FastAPI dependency injection
-│   └── static/
-│       └── index.html            # Single-page web UI
+│   │   └── sqlite_repository.py      # SQLite adapter (SQLAlchemy Core)
+│   ├── service_deps.py               # Dependency injection wiring
+│   ├── static/
+│   │   └── index.html                # Single-page web UI (CSS + HTML + JS)
+│   └── tests/                        # API-layer integration tests
 │
-└── AstraNotes_v1/                # Domain layer (framework-agnostic)
-    ├── note.py                   # Note entity (dataclass)
-    ├── exceptions.py             # Custom exception hierarchy
-    ├── repositories/
-    │   └── abstract_note_repository.py  # Repository interface
-    ├── services/
-    │   └── note_service.py       # Business logic orchestration
-    ├── policies/
-    │   └── privacy_policy.py     # Access control (can_read/update/delete)
-    └── history/
-        └── version_history.py    # Version audit trail
+├── AstraNotes_v1/                    # Layer 2: Domain Logic (pure Python, no framework)
+│   ├── note.py                       # Note entity (dataclass)
+│   ├── exceptions.py                 # Custom exception hierarchy
+│   ├── repositories/
+│   │   └── abstract_note_repository.py   # Repository interface (DI contract)
+│   ├── services/
+│   │   └── note_service.py           # Business rule orchestration
+│   ├── policies/
+│   │   └── privacy_policy.py         # Access control (can_read / update / delete)
+│   ├── history/
+│   │   └── version_history.py        # Version snapshot model
+│   └── tests/                        # Domain-layer unit tests
+│
+├── planning/                         # All SDLC planning documents (31 files)
+├── UML/                              # 5 draw.io UML diagrams
+├── .github/workflows/ci.yml          # GitHub Actions CI (Python 3.11 + 3.12)
+├── requirements.txt
+├── requirements-dev.txt
+└── pytest.ini
 ```
 
-### Design Decisions (Architecture Decision Log)
+### Key Architecture Decisions
 
-- **Repository pattern**: `AbstractNoteRepository` interface decouples business logic from storage
-- **Privacy via PrivacyPolicy**: Access control is enforced at the service layer, not the HTTP layer
-- **SQLAlchemy Core (not ORM)**: Chosen for simplicity and direct SQL control at Sprint 7 scale
-- **JWT authentication**: Stateless, scalable; `user_id` derived from token (no session storage)
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Storage abstraction | `AbstractNoteRepository` interface | Decouples domain logic from storage; swapping SQLite → PostgreSQL requires changing only `sqlite_repository.py` |
+| Access control location | Service layer (`NotePrivacyPolicy`) | Cannot be bypassed by calling the API directly; enforced before any DB read |
+| ORM vs Core | SQLAlchemy Core (not ORM) | Simpler, no session complexity, direct SQL control at this scale |
+| Authentication | PyJWT + bcrypt | Stateless; `user_id` embedded in token, no server-side session storage |
+
+Full decision history: [`planning/architecture_decision_log.md`](planning/architecture_decision_log.md)
 
 ## API Reference
 
@@ -93,19 +110,19 @@ All note endpoints require `Authorization: Bearer <token>`.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | /auth/register | Create account, receive JWT |
-| POST | /auth/login | Authenticate, receive JWT |
-| GET | /health | Health check |
-| POST | /notes/ | Create note |
-| GET | /notes/ | List owner's notes (optional `?tags=a&tags=b` filter — AND logic) |
-| GET | /notes/{id} | Get single note (private+password → requires `X-Note-Password` header) |
-| PATCH | /notes/{id} | Update note fields |
-| DELETE | /notes/{id} | Delete note |
-| GET | /notes/{id}/versions | List all version snapshots for a note |
-| POST | /notes/{id}/revert/{version} | Revert note to a previous version snapshot |
-| POST | /notes/{id}/emergency-unlock | Clear note password hash using account password |
+| POST | `/auth/register` | Create account, receive JWT |
+| POST | `/auth/login` | Authenticate, receive JWT |
+| GET | `/health` | Health check |
+| POST | `/notes/` | Create note |
+| GET | `/notes/` | List owner's notes (`?tags=a&tags=b` — AND filter) |
+| GET | `/notes/{id}` | Get note (private+password → `X-Note-Password` header required) |
+| PATCH | `/notes/{id}` | Update note fields |
+| DELETE | `/notes/{id}` | Delete note |
+| GET | `/notes/{id}/versions` | List all version snapshots |
+| POST | `/notes/{id}/revert/{version}` | Revert to a previous snapshot |
+| POST | `/notes/{id}/emergency-unlock` | Clear note password using account password |
 
-Interactive API docs: http://localhost:8000/docs
+Interactive docs: **http://localhost:8000/docs**
 
 ## Testing
 
@@ -113,61 +130,82 @@ Interactive API docs: http://localhost:8000/docs
 # Run all tests
 python -m pytest -q
 
-# With verbose output
+# Verbose output
 python -m pytest -v
+
+# Run only domain-layer unit tests
+python -m pytest AstraNotes_v1/tests/ -v
+
+# Run only API integration tests
+python -m pytest app/tests/ -v
 ```
 
-**Test results:** 75 passed, 6 pre-existing failures tracked, 0 new failures
+**Test results: 81 passed, 0 failed** (Python 3.11 + 3.12, CI green)
 
-> The 6 tracked failures are pre-existing design-drift tests written when default visibility was `"private"` and public notes were cross-user visible. Current implementation enforces owner-only access for all notes via `PrivacyPolicy`. These tests are kept as a record of the design shift.
-
-| Test File | Count | Level | Coverage |
-|-----------|-------|-------|---------|
-| `AstraNotes_v1/tests/` | 32 | Unit | Domain model, service, policy, repository, version history |
-| `app/tests/test_sqlite_repository.py` | 17 | Unit | SQLite adapter CRUD + version history (TSQ-01~17) |
-| `app/tests/test_notes_api.py` | 20 | Integration | HTTP endpoints, tag filter (TNA-01~15), note passwords, access control |
+| Test File | Tests | Level | What it covers |
+|-----------|-------|-------|----------------|
+| `AstraNotes_v1/tests/test_note_model.py` | 8 | Unit | Note entity validation, Unicode title |
+| `AstraNotes_v1/tests/test_service.py` | 8 | Unit | NoteService CRUD + error paths |
+| `AstraNotes_v1/tests/test_privacy_policy.py` | 6 | Unit | Access control rules |
+| `AstraNotes_v1/tests/test_repository.py` | 5 | Unit | JsonFile repository adapter |
+| `AstraNotes_v1/tests/test_version_history.py` | 5 | Unit | Version snapshot model |
+| `app/tests/test_sqlite_repository.py` | 17 | Integration | SQLite adapter CRUD + version history (TSQ-01~17) |
+| `app/tests/test_notes_api.py` | 20 | Integration | HTTP endpoints, tag filter, note passwords, access control (TNA-01~15) |
 | `app/tests/test_version_history_api.py` | 5 | Integration | Version history endpoints (TVH-01~05) |
-| `app/tests/test_auth.py` | 5 | Integration | Auth register/login |
+| `app/tests/test_auth.py` | 5 | Integration | Register / login flows |
 | `app/tests/test_health.py` | 2 | Integration | Health endpoint |
 
-## Deployment (Render)
+Extended live-server scenario tests (150 scenarios, requires running server):
 
-1. Create a new **Web Service** on [render.com](https://render.com)
-2. Connect your GitHub repository
-3. Set build command: `pip install -r requirements.txt`
-4. Set start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-5. Add environment variable: `JWT_SECRET=<your-secret-key>`
+```bash
+# Start server first: uvicorn app.main:app --port 8001
+python app/tests/scenario_tests.py           # Scenarios 1–50
+python app/tests/scenario_tests_extended.py  # Scenarios 51–150
+```
 
 ## Project Artifacts
 
-| Artifact | Location | Status |
-|----------|----------|--------|
-| Requirements | `planning/requirements.md` | ✅ Complete (updated for web multi-user) |
-| User Stories | `planning/user-stories.md` | ✅ Complete (US-01~06) |
-| Architecture Decision Log | `planning/architecture_decision_log.md` | ✅ Complete (incl. ADR-WEB-01/02) |
-| UML Diagrams | `UML/` | ✅ Complete (Week 4 design) |
-| Traceability Matrix | `planning/TRACEABILITY.md` | ✅ Complete (updated post-Sprint 7) |
-| Test Plans | `docs/unit_test_plan.md`, `docs/feature_test_plan.md` | ✅ Complete |
-| Sprint Backlogs | `planning/sprint-backlog.md`, `planning/sprint7-backlog.md` | ✅ Complete |
-| Working Agreement | `planning/working_agreement.md` | ✅ Complete |
-| CI/CD Pipeline | `.github/workflows/ci.yml` | ✅ Configured |
-| Collaboration Log | `planning/collaboration_log.md` | 🔄 Week 8-9 complete; Week 10 pending |
-| Deployment Plan | `planning/deployment_plan.md` | 🔄 Draft (Render URL pending Week 10) |
-| Maintenance Plan | `planning/maintenance_plan.md` | 🔄 Draft (security audit pending Week 10) |
+All SDLC artifacts developed across the 10-week course are in `planning/`:
 
-## AI Development Process
+| Artifact | File | Week |
+|----------|------|------|
+| Initial Requirements | `planning/initial_requirements.md` | W1-2 |
+| Architecture Decision Log | `planning/architecture_decision_log.md` | W1-2 → ongoing |
+| Working Agreement | `planning/working_agreement.md` | W2-1 |
+| Definition of Done | `planning/definition_of_done.md` | W2-1 |
+| Product Backlog | `planning/backlog.md` | W2-2 |
+| Sprint Zero Plan | `planning/sprint-zero-plan.md` | W2-2 |
+| Refined Requirements Baseline | `planning/requirements.md` | W3-1 |
+| Threat Scope Statement (Governance) | `planning/threat_scope_statement.md` | W3-2 |
+| Design Package | `planning/DESIGN.md` | W4 |
+| UML Diagrams (5 diagrams) | `UML/` | W4 |
+| Traceability Matrix | `planning/TRACEABILITY.md` | W5-1 |
+| Sprint Log (all sprints) | `planning/sprint_log.md` | W6 → W10 |
+| Testing Strategy | `planning/week7-testing-strategy.md` | W7-2 |
+| Collaboration & AI Log | `planning/collaboration_log.md` | W8 → W10 |
+| AI Interaction Log | `planning/ai_interaction_log.md` | W1 → W10 |
+| AI Code Validation Checklist | `planning/ai_code_validation_checklist.md` | W8 |
+| CI/CD Workflow Plan | `planning/cicd_workflow_plan.md` | W10 |
+| Deployment Plan | `planning/deployment_plan.md` | W10 |
+| Maintenance Plan | `planning/maintenance_plan.md` | W10 |
+| Functional Spec | `planning/functional_spec.md` | W6 |
+| Unit Test Plan | `planning/unit_test_plan.md` | W7 |
+| Feature Test Plan | `planning/feature_test_plan.md` | W7 |
 
-This project was built using an AI-native development workflow (Claude Code):
-- AI generated architecture proposals, test scaffolding, and implementation drafts
-- Human review accepted, refined, or rejected each AI output
-- All commits represent human-approved, verified code
+## AI-Native Development Process
 
-Key decisions made by human judgment:
-- Selected access-control-only privacy (rejected encryption for Sprint 1-7 scope)
-- Chose SQLAlchemy Core over ORM (simpler for current scale)
-- Deferred bcrypt auth to match test safety constraints
-- Rejected AI-generated tests that had no requirement linkage
+This project was built using an AI-native workflow — Claude assisted at every SDLC stage while the human acted as reviewer, validator, and decision-maker.
+
+**Three categories of AI output:**
+
+| Outcome | Example |
+|---------|---------|
+| **Accepted** | `AbstractNoteRepository` interface — clean, matched dependency-inversion principle exactly |
+| **Refined** | Note `body` field changed from required to optional after checking FR-01 (AI missed the spec) |
+| **Rejected** | SQLAlchemy ORM → switched to Core; ORM added unnecessary complexity at this scale |
+
+All decisions are recorded in [`planning/architecture_decision_log.md`](planning/architecture_decision_log.md) and [`planning/collaboration_log.md`](planning/collaboration_log.md).
 
 ---
 
-AstraNotes ·  · Spring 2026
+*AstraNotes · CSEN 296B-2 · Santa Clara University · Spring 2026*
