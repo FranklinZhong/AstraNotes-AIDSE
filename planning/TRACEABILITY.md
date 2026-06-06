@@ -198,8 +198,8 @@ Three design elements exist without requirement backing: version history use cas
 |-----------|-------|--------|
 | `AstraNotes_v1/tests/` | 32 | Domain model, service, privacy policy, JSON repo, version history (domain) |
 | `app/tests/test_sqlite_repository.py` | 17 | SQLite adapter CRUD + version history (TSQ-01~17) |
-| `app/tests/test_notes_api.py` | 20 | HTTP endpoints, tag filter, note passwords, access control (TNA-01~15) |
+| `app/tests/test_notes_api.py` | 23 | HTTP endpoints, tag filter, note passwords, access control, emergency unlock (TNA-01~18) |
 | `app/tests/test_version_history_api.py` | 5 | Version history API (TVH-01~05) |
 | `app/tests/test_auth.py` | 5 | Auth register/login |
 | `app/tests/test_health.py` | 2 | Health endpoint |
-| **Total** | **81** | **75 passing; 6 pre-existing visibility-drift failures tracked** |
+| **Total** | **84** | **84 passing, 0 failures** |

@@ -341,7 +341,7 @@ Close all Sprint 1 prerequisites (SZ-06, GOV-B-02~05, design issue decisions), t
 - AI suggestion to add emergency-unlock tests rejected for Week 9 scope; deferred to Week 10 security review
 - AI suggestion to split TSQ-14 into separate tests rejected (unnecessary complexity)
 
-**Outcome:** 81 tests total (75 passing, 6 pre-existing visibility-drift failures tracked and documented); all Sprint 9 features functional; Week 9 collaboration log completed.
+**Outcome:** 81 tests at Sprint 9 close (visibility-drift failures resolved in Sprint 10 cleanup); all Sprint 9 features functional; Week 9 collaboration log completed. Final count after Sprint 10: 84 passing, 0 failures.
 
 **Lessons Learned:**
 - Prompt Bank is a structured critique tool: AI finds patterns, human verifies against code
