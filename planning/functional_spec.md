@@ -61,9 +61,12 @@ Missing or invalid token → 401 Unauthorized.
 ### GET /notes/{id} — Get Note (FR-01, US-01)
 | Case | Behavior |
 |------|----------|
-| Own note (public or private) | 200 + NoteResponse |
-| Another user's public note | 200 + NoteResponse |
-| Another user's private note | 403 Forbidden (PrivacyPolicy → AccessDeniedError) |
+| Own note (public, no note password) | 200 + NoteResponse |
+| Own note (private, no note password set) | 200 + NoteResponse |
+| Own note (private, note password set, correct X-Note-Password) | 200 + NoteResponse |
+| Own note (private, note password set, missing X-Note-Password) | 401 |
+| Own note (private, note password set, wrong X-Note-Password) | 403 |
+| Another user's note (any visibility) | 403 Forbidden (PrivacyPolicy owner-only — ADR-WEB-01) |
 | Non-existent ID | 404 Not Found |
 | No auth token | 401 |
 
@@ -72,25 +75,26 @@ Missing or invalid token → 401 Unauthorized.
 |------|----------|
 | Valid partial update | 200 + NoteResponse (version incremented, updated_at refreshed) |
 | Empty title in patch | 422 |
-| Another user's private note | 403 |
+| Another user's note (any visibility) | 403 (PrivacyPolicy owner-only — ADR-WEB-01) |
 | Non-existent ID | 404 |
 
 ### DELETE /notes/{id} — Delete Note (FR-03, US-03)
 | Case | Behavior |
 |------|----------|
 | Own note | 204 No Content |
-| Another user's private note | 403 |
+| Another user's note (any visibility) | 403 (PrivacyPolicy owner-only — ADR-WEB-01) |
 | Non-existent ID | 404 |
 
 ---
 
-## 5. Privacy Rules (GOV-01, FR-04)
+## 5. Privacy Rules (GOV-01, FR-04, ADR-WEB-01)
 
 - `author_id` is set from the JWT `sub` claim (username) at note creation
-- `visibility` defaults to `"private"`
-- **Private note:** only readable/editable/deletable by its `author_id`
-- **Public note:** readable by any authenticated user; editable/deletable only by `author_id`
-- Enforcement: `PrivacyPolicy` (existing domain layer, unchanged)
+- `visibility` defaults to `"public"` (controls note-password requirement, not cross-user access)
+- **All notes are owner-only:** only the `author_id` can read, edit, or delete a note, regardless of `visibility`
+- `"private"` visibility: note password may be required to read (if `note_password_hash` is set)
+- `"public"` visibility: no note password required; note password hash is cleared automatically when switching to public
+- Enforcement: `PrivacyPolicy.can_read/update/delete()` — raises `AccessDeniedError` → HTTP 403 for any non-owner access
 
 ---
 
@@ -107,7 +111,7 @@ Authorization: Bearer <jwt_token>     (all /notes/* endpoints)
   "id":         "uuid-string",
   "title":      "My Note",
   "body":       "Note content",
-  "visibility": "private",
+  "visibility": "public",
   "author_id":  "alice",
   "created_at": "2026-05-06T18:00:00Z",
   "updated_at": "2026-05-06T18:00:00Z",
@@ -123,14 +127,20 @@ Authorization: Bearer <jwt_token>     (all /notes/* endpoints)
 |---------|-------------|--------|--------|
 | Register / Login | — | ✅ Done | 5 |
 | JWT auth on all /notes/ | GOV-01 | ✅ Done | 5 |
-| Create Note endpoint | FR-01, US-01 | ⏳ Stub | 7 |
-| List Notes endpoint | FR-05, US-05 | ⏳ Stub | 7 |
-| Get Note endpoint | FR-01 | ⏳ Stub | 7 |
-| Update Note endpoint | FR-02, US-02 | ⏳ Stub | 7 |
-| Delete Note endpoint | FR-03, US-03 | ⏳ Stub | 7 |
-| Privacy enforcement | FR-04, GOV-01 | ⏳ Stub | 8 |
-| Version history | FR-06, US-05 | ⏳ Stub | 8 |
-| Render deployment | — | ⏳ Planned | 8 |
+| Create Note endpoint | FR-01, US-01 | ✅ Done | 7 |
+| List Notes endpoint | FR-05, US-05 | ✅ Done | 7 |
+| Get Note endpoint | FR-01 | ✅ Done | 7 |
+| Update Note endpoint | FR-02, US-02 | ✅ Done | 7 |
+| Delete Note endpoint | FR-03, US-03 | ✅ Done | 7 |
+| Privacy enforcement (owner-only, ADR-WEB-01) | FR-04, GOV-01 | ✅ Done | 7 |
+| Note-level password protection | FR-04, GOV-01 | ✅ Done | 9 |
+| Emergency unlock | FR-08 | ✅ Done | 9 |
+| Version history | FR-06 | ✅ Done | 8 |
+| Auto-save (client-side) | NFR usability | ✅ Done | 9 |
+| Unicode title validation | FR-01, GOV-05 | ✅ Done | 9 |
+| Tags AND filter | FR-04, US-05 | ✅ Done | 9 |
+| CI/CD pipeline | GOV-03 | ✅ Done | 10 |
+| Render deployment | — | ⏳ Pending live URL | 10 |
 
 ---
 

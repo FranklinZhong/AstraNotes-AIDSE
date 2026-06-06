@@ -52,7 +52,7 @@ def list_notes(
     service: NoteService = Depends(get_note_service),
     tags: Optional[List[str]] = Query(default=None, description="Filter by tags (AND match)"),
 ):
-    """List the current user's notes. Private note bodies are masked. (FR-03, US-03)"""
+    """List the current user's notes. Private note bodies are masked. (FR-05, US-05)"""
     notes = service.list_notes(user_id=user_id)
     if tags:
         tag_set = set(tags)
@@ -151,7 +151,7 @@ def emergency_unlock(
     user_id: str = Depends(get_current_user),
     service: NoteService = Depends(get_note_service),
 ):
-    """Emergency unlock: verify account password, clear note_password_hash. (FR-01)"""
+    """Emergency unlock: verify account password, clear note_password_hash. (FR-08)"""
     from app.routers.auth import verify_user_password
     if not verify_user_password(user_id, body.account_password):
         raise HTTPException(status_code=403, detail="Incorrect account password")

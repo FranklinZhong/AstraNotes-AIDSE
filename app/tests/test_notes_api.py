@@ -242,3 +242,65 @@ def test_create_note_with_non_breaking_space_title_returns_422(client, auth_head
     """
     resp = client.post("/notes/", json={"title": " "}, headers=auth_headers)
     assert resp.status_code == 422
+
+
+# -- Emergency unlock (TNA-16 / TNA-17 / TNA-18) --
+
+def test_emergency_unlock_with_correct_account_password_clears_note_password(client, auth_headers):
+    """TNA-16: POST /notes/{id}/emergency-unlock with correct account password clears
+    note_password_hash and returns 200 with is_protected=false. (FR-08)
+
+    After unlock the note must be accessible via GET without X-Note-Password.
+    """
+    create = client.post(
+        "/notes/",
+        json={"title": "Locked", "visibility": "private", "note_password": "secret"},
+        headers=auth_headers,
+    )
+    note_id = create.json()["id"]
+    assert create.json()["is_protected"] is True
+
+    unlock = client.post(
+        f"/notes/{note_id}/emergency-unlock",
+        json={"account_password": "testpass"},
+        headers=auth_headers,
+    )
+    assert unlock.status_code == 200
+    assert unlock.json()["is_protected"] is False
+
+    get_resp = client.get(f"/notes/{note_id}", headers=auth_headers)
+    assert get_resp.status_code == 200
+
+
+def test_emergency_unlock_with_wrong_account_password_returns_403(client, auth_headers):
+    """TNA-17: POST /notes/{id}/emergency-unlock with wrong account password returns 403.
+    (FR-08)
+
+    verify_user_password() fails -> HTTPException 403 before any note mutation occurs.
+    """
+    create = client.post(
+        "/notes/",
+        json={"title": "Locked", "visibility": "private", "note_password": "secret"},
+        headers=auth_headers,
+    )
+    note_id = create.json()["id"]
+
+    resp = client.post(
+        f"/notes/{note_id}/emergency-unlock",
+        json={"account_password": "wrongpass"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 403
+
+
+def test_emergency_unlock_on_nonexistent_note_returns_404(client, auth_headers):
+    """TNA-18: POST /notes/{id}/emergency-unlock on unknown note returns 404. (FR-08)
+
+    Account password is verified first; NoteNotFoundError from service -> HTTP 404.
+    """
+    resp = client.post(
+        "/notes/nonexistent-id/emergency-unlock",
+        json={"account_password": "testpass"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 404
