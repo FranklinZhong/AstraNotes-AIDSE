@@ -358,7 +358,7 @@ The note remains accessible without a password until the user sets a new one. Th
 
 - `verify_user_password()` helper added to `app/routers/auth.py` (reused by emergency unlock)
 - Unlock clears hash (does not recover original password — impossible with bcrypt)
-- Test coverage: deferred to Week 10 security review (noted in collaboration_log.md)
+- Test coverage: TNA-16 (correct account password → 200, is_protected=false), TNA-17 (wrong password → 403), TNA-18 (unknown note → 404) — added Sprint 10
 
 ---
 

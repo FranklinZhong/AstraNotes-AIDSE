@@ -1,6 +1,6 @@
 # AstraNotes — Deployment Plan
 
-> **Status:** Complete — CI/CD operational; Render deployment pending live URL (to be added after demo deployment, weekend of June 1-2, 2026).
+> **Status:** Complete — CI/CD operational; Render deployment configured via `render.yaml` (root of repo).
 
 ## Overview
 
@@ -31,17 +31,38 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-## Deployment Steps (Manual)
+## Deployment via render.yaml (Infrastructure-as-Code)
 
-1. Push code to GitHub (ensure `app/`, `AstraNotes_v1/`, `requirements.txt` are committed)
-2. Create new **Web Service** on render.com
-3. Connect GitHub repository
-4. Set **Build Command:** `pip install -r requirements.txt`
-5. Set **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-6. Add Environment Variable: `JWT_SECRET` = (generate with `openssl rand -hex 32`)
-7. Click **Deploy**
-8. Wait for deployment (2-3 minutes on free tier)
-9. Verify at `https://<app-name>.onrender.com/health`
+The `render.yaml` in the repo root defines the full service configuration.
+Render reads this file automatically when the repo is connected.
+
+```yaml
+services:
+  - type: web
+    name: astranotes
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true      # Render auto-generates a secure random value
+      - key: DATABASE_URL
+        value: sqlite:///./notes.db
+```
+
+`JWT_SECRET` uses `generateValue: true` — Render generates a secure secret automatically; no manual entry needed.
+
+## First-Time Setup (one-time)
+
+1. Go to [render.com](https://render.com) → **New** → **Web Service**
+2. Connect the GitHub repository (`FranklinZhong/AstraNotes-AIDSE`)
+3. Render detects `render.yaml` and pre-fills all settings
+4. Click **Deploy** — done in ~2 minutes
+5. Verify: `https://<app-name>.onrender.com/health`
+
+All subsequent pushes to `main` auto-deploy via the connected repo.
 
 ## Post-Deployment Verification
 
@@ -102,10 +123,10 @@ python -m pytest -q
 
 | Trigger | Python versions | Test command | Status |
 |---------|----------------|--------------|--------|
-| Push to `main` | 3.11, 3.12 | `pytest -q --tb=short` | ✅ Passing (commit cfff430) |
+| Push to `main` | 3.11, 3.12 | `pytest -q --tb=short` | ✅ Passing — 84 tests |
 | PR to `main` | 3.11, 3.12 | `pytest -q --tb=short` | ✅ Active gate |
 
-Test results are uploaded as artifacts with 7-day retention on every CI run.
+Test results are uploaded as JUnit XML artifacts with 14-day retention on every CI run.
 
 **Render deployment notes:**
 - Free tier instances sleep after 15 minutes of inactivity

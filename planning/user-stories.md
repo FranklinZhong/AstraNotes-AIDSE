@@ -37,7 +37,7 @@
 **Acceptance Criteria:**
 - The user can select a note and delete it.
 - The deleted note no longer appears in the notes list after the operation completes.
-- The deletion is reflected in local storage so the note does not return on next application start.
+- The deletion is persisted to SQLite so the note does not reappear on subsequent requests.
 
 ---
 
@@ -49,19 +49,19 @@
 **Acceptance Criteria:**
 - The user can toggle a note's private flag at creation or during editing.
 - A private note's body content is not displayed in plain text in the standard notes list view.
-- The privacy state of a note is persisted to local storage and restored on application restart.
+- The privacy state of a note is persisted to SQLite and returned correctly on subsequent API requests.
 
 ---
 
 ## US-05 — Note Persistence
 **Source:** FR-05, FR-06
 
-**Story:** As a user, I want my notes to be saved to local storage automatically so that I do not lose my work when I close and restart the application.
+**Story:** As a user, I want my notes to be saved to the server automatically so that I do not lose my work.
 
 **Acceptance Criteria:**
-- All notes saved during a session are present in the notes list after the application is closed and reopened.
-- Notes are written to local storage at the point of save, not only on application exit.
-- If a note fails to persist due to a storage error, the system shall report a clear error message rather than silently losing data.
+- All notes created or updated via the API are present when the notes list is fetched again.
+- Notes are written to SQLite at the point of save (each POST/PATCH is immediately durable).
+- If a note fails to persist due to a storage error, the system shall report a clear error rather than silently losing data.
 
 ---
 
@@ -83,21 +83,23 @@
 **Story:** As a developer, I want the storage backend to be isolated behind `AbstractNoteRepository` so that I can swap storage implementations without changing business logic.
 
 **Acceptance Criteria:**
-- `NoteService` is instantiated with an `AbstractNoteRepository` parameter and never imports `JsonFileNoteRepository` directly.
-- A test suite can run using an in-memory or temporary-file repository without any changes to `NoteService`.
-- Replacing `JsonFileNoteRepository` with a different adapter (e.g. SQLite) requires changes only in the adapter file and the application entry point.
+- `NoteService` is instantiated with an `AbstractNoteRepository` parameter and never imports `SqliteNoteRepository` directly.
+- Tests run using an isolated in-memory SQLite instance injected via `app.dependency_overrides` without any changes to `NoteService`.
+- The `JsonFileNoteRepository` (v1) was replaced by `SqliteNoteRepository` (v2) with zero changes to `NoteService` or `PrivacyPolicy` — validating this story (ADR-WEB-01).
 
 ---
 
 ## US-08 — Atomic Write Persistence
 **Source:** NFR-02 (atomic write contract)
 
-**Story:** As a user, I want notes written to disk atomically so that my data is not corrupted if the application crashes mid-save.
+**Story:** As a user, I want notes written to the database atomically so that my data is not corrupted if the application crashes mid-save.
 
 **Acceptance Criteria:**
-- Every write to storage goes through `temp file → fsync → os.replace()` — no partial writes are possible.
-- Three rolling backup files (`.bak.1`, `.bak.2`, `.bak.3`) are maintained and rotated on each successful write.
-- If the primary data file is corrupted, the application falls back to the most recent backup and raises `StorageCorruptionError` rather than crashing.
+- Every write to SQLite is wrapped in a transaction; no partial writes are possible.
+- A failed write raises a storage error to the caller rather than silently corrupting data.
+- The `version` field increments on every successful PATCH, enabling detection of concurrent update conflicts.
+
+> *Note: The original acceptance criteria (temp→fsync→os.replace, backup rotation) described the v1 `JsonFileNoteRepository`. After ADR-WEB-01, `SqliteNoteRepository` fulfils the atomicity guarantee via SQLAlchemy transactions.*
 
 ---
 
@@ -109,7 +111,7 @@
 **Acceptance Criteria:**
 - Every `NoteService` method that reads, updates, or deletes a note calls `PrivacyPolicy.can_*()` before any repository operation.
 - Attempting to read, update, or delete a private note with a non-matching `user_id` raises `AccessDeniedError` before the repository is touched.
-- The README and CLI help text include the disclosure: "Private notes are protected by application-level access control, not file-system encryption." (GOV-B-01)
+- The README includes the disclosure: "Private notes are protected by application-level access control, not file-system encryption." (GOV-B-01)
 
 ---
 
@@ -119,6 +121,6 @@
 **Story:** As a user, I want the application to report meaningful error messages instead of crashing so that I can understand what went wrong and recover.
 
 **Acceptance Criteria:**
-- No raw Python exception (`FileNotFoundError`, `JSONDecodeError`, `KeyError`, etc.) escapes any public method of `NoteService` or `JsonFileNoteRepository`.
+- No raw Python exception (`FileNotFoundError`, `IntegrityError`, `KeyError`, etc.) escapes any public method of `NoteService` or `SqliteNoteRepository`.
 - All storage I/O errors are caught and re-raised as `StorageIOError`; all JSON parse failures as `StorageCorruptionError`.
 - Invalid note IDs in get/update/delete raise `NoteNotFoundError`; empty titles raise `ValidationError`; policy violations raise `AccessDeniedError`.

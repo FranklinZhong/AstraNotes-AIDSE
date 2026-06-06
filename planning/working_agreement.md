@@ -31,7 +31,7 @@ against the Definition of Done and write a two-sentence retrospective.
    the original prompt. If I cannot, I re-prompt rather than accept.
 
 4. **Prompt log**  
-   Every significant AI session is recorded in `prompt_log.md`:
+   Every significant AI session is recorded in `planning/ai_interaction_log.md`:
    `[Date] [Module] [what I asked] → [accepted / changed / rejected — one-line reason]`.
    Decisions made in Week 2 must still be traceable in Week 10.
 

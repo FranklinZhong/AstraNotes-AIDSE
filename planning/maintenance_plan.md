@@ -18,7 +18,7 @@ This plan describes how AstraNotes v1.0 will be maintained after initial deploym
 ### Key Metrics to Watch
 
 - Response time: health check should respond < 500ms
-- Test pass rate: must remain 58/58 (100%)
+- Test pass rate: must remain 84/84 (100%)
 - SQLite file size: monitor for unexpected growth
 
 ### Log Locations
@@ -42,9 +42,9 @@ This plan describes how AstraNotes v1.0 will be maintained after initial deploym
 1. Reproduce locally with failing test
 2. Write a regression test (TDD — test first)
 3. Fix the bug
-4. Verify all 58+ tests pass
+4. Verify all 84+ tests pass
 5. Commit with descriptive message
-6. Deploy to Render
+6. Push to main (triggers CI)
 
 ## Dependency Management
 
@@ -60,26 +60,34 @@ This plan describes how AstraNotes v1.0 will be maintained after initial deploym
 
 **Policy:** Security-related packages (pyjwt, passlib) are updated immediately on CVE disclosure. All updates require passing the full test suite before deployment.
 
-### Known Technical Debt
+### Known Technical Debt (Sprint 7 baseline — resolved in Sprint 8+)
 
-| Item | Location | Sprint |
+| Item | Location | Status |
 |------|----------|--------|
-| `add_version_snapshot()` is a no-op | `app/db/sqlite_repository.py` | Sprint 8 |
-| Auth users stored in same SQLite file as notes | `app/routers/auth.py` | Sprint 8 |
-| No password reset flow | `app/routers/auth.py` | Sprint 8+ |
-| bcrypt warning (passlib/bcrypt version compat) | `requirements.txt` | Sprint 8 |
-| `datetime.utcnow()` deprecation warnings | `AstraNotes_v1/note.py` | Sprint 8 |
+| `add_version_snapshot()` is a no-op | `app/db/sqlite_repository.py` | ✅ Resolved Sprint 8 |
+| Auth users stored in same SQLite file as notes | `app/routers/auth.py` | ✅ Resolved Sprint 7 |
+| No password reset flow | `app/routers/auth.py` | Out of scope v1 |
+| bcrypt warning (passlib/bcrypt version compat) | `requirements.txt` | Low priority |
+| `datetime.utcnow()` deprecation warnings | `AstraNotes_v1/note.py` | Low priority (advisory CI only) |
 
-## Planned Enhancements (Sprint 8+)
+## Completed Enhancements (Sprint 8-9)
+
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Full version history | P0 | ✅ Done Sprint 8 — `add_version_snapshot()` + API + UI |
+| Note-level bcrypt password | P0 | ✅ Done Sprint 9 — TNA-10/11/12 |
+| Emergency unlock | P0 | ✅ Done Sprint 9 — TNA-16/17/18 |
+| Tags filtering (AND semantics) | P1 | ✅ Done Sprint 9 — TNA-09 |
+| Auto-save (client-side debounce) | P1 | ✅ Done Sprint 9 |
+| CI/CD pipeline (blocking + advisory) | P0 | ✅ Done Sprint 10 |
+
+## Future Enhancements (post-course)
 
 | Feature | Priority | Description |
 |---------|----------|-------------|
-| Full version history | P0 | Implement `SqliteNoteRepository.add_version_snapshot()` + version browsing UI |
-| Password hashing upgrade | P0 | Fix bcrypt/passlib version warning; upgrade passlib |
 | Note search | P1 | Full-text search across notes |
-| Tags filtering | P1 | Filter notes by tag |
 | Note export | P2 | Export notes as Markdown or plain text |
-| Public note sharing | P2 | Share public notes via URL |
+| Automated CVE scanning | P1 | Add Dependabot or `pip-audit` to CI |
 
 ## Data Backup (Local Development)
 
@@ -130,5 +138,5 @@ Performed as part of Week 10.2 release preparation. See `planning/collaboration_
 |------|------|----------|-------|
 | `datetime.utcnow()` deprecation | `note.py`, `json_file_note_repository.py` | Low | 189 warnings in test run; replace with `datetime.now(datetime.UTC)` |
 | 6 pre-existing visibility-drift test failures | `test_note_model.py`, `test_privacy_policy.py`, `test_service.py` | Low | Document design decision (owner-only access); update or remove outdated tests |
-| Emergency unlock test coverage | — | Medium | Deferred from Week 9 scope; add in future sprint |
+| Emergency unlock test coverage | — | ✅ Resolved | TNA-16/17/18 added Sprint 10 |
 | SQLite ephemeral storage | Render deployment | High (production) | Acceptable for demo; requires managed DB for real deployment |
