@@ -170,7 +170,7 @@ All SDLC artifacts developed across the 10-week course are in `planning/`:
 | Artifact | File | Week |
 |----------|------|------|
 | Initial Requirements | `planning/initial_requirements.md` | W1-2 |
-| Architecture Decision Log | `planning/architecture_decision_log.md` | W1-2 → ongoing |
+| Architecture Decision Log | `planning/architecture_decision_log.md` | W1-10 (complete) |
 | Working Agreement | `planning/working_agreement.md` | W2-1 |
 | Definition of Done | `planning/definition_of_done.md` | W2-1 |
 | Product Backlog | `planning/backlog.md` | W2-2 |
