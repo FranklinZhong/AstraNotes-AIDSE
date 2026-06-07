@@ -140,17 +140,17 @@ python -m pytest AstraNotes_v1/tests/ -v
 python -m pytest app/tests/ -v
 ```
 
-**Test results: 81 passed, 0 failed** (Python 3.11 + 3.12, CI green)
+**Test results: 84 passed, 0 failed** (Python 3.11 + 3.12, CI green)
 
 | Test File | Tests | Level | What it covers |
 |-----------|-------|-------|----------------|
-| `AstraNotes_v1/tests/test_note_model.py` | 8 | Unit | Note entity validation, Unicode title |
-| `AstraNotes_v1/tests/test_service.py` | 8 | Unit | NoteService CRUD + error paths |
+| `AstraNotes_v1/tests/test_note_model.py` | 11 | Unit | Note entity validation, Unicode title |
+| `AstraNotes_v1/tests/test_service.py` | 5 | Unit | NoteService CRUD + error paths |
 | `AstraNotes_v1/tests/test_privacy_policy.py` | 6 | Unit | Access control rules |
-| `AstraNotes_v1/tests/test_repository.py` | 5 | Unit | JsonFile repository adapter |
-| `AstraNotes_v1/tests/test_version_history.py` | 5 | Unit | Version snapshot model |
+| `AstraNotes_v1/tests/test_repository.py` | 7 | Unit | JsonFile repository adapter |
+| `AstraNotes_v1/tests/test_version_history.py` | 3 | Unit | Version snapshot model |
 | `app/tests/test_sqlite_repository.py` | 17 | Integration | SQLite adapter CRUD + version history (TSQ-01~17) |
-| `app/tests/test_notes_api.py` | 20 | Integration | HTTP endpoints, tag filter, note passwords, access control (TNA-01~15) |
+| `app/tests/test_notes_api.py` | 23 | Integration | HTTP endpoints, tag filter, note passwords, access control, emergency unlock (TNA-01~18) |
 | `app/tests/test_version_history_api.py` | 5 | Integration | Version history endpoints (TVH-01~05) |
 | `app/tests/test_auth.py` | 5 | Integration | Register / login flows |
 | `app/tests/test_health.py` | 2 | Integration | Health endpoint |

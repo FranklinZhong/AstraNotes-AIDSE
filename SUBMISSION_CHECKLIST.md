@@ -79,11 +79,11 @@ This document maps each grading criterion to the specific artifacts in this repo
 
 | Test File | Count | Level | Coverage |
 |-----------|-------|-------|----------|
-| `AstraNotes_v1/tests/test_note_model.py` | 8 | Unit | Note entity, unicode validation |
-| `AstraNotes_v1/tests/test_service.py` | 8 | Unit | NoteService CRUD + error paths |
+| `AstraNotes_v1/tests/test_note_model.py` | 11 | Unit | Note entity, unicode validation |
+| `AstraNotes_v1/tests/test_service.py` | 5 | Unit | NoteService CRUD + error paths |
 | `AstraNotes_v1/tests/test_privacy_policy.py` | 6 | Unit | Access control rules |
-| `AstraNotes_v1/tests/test_repository.py` | 5 | Unit | JsonFile repository adapter |
-| `AstraNotes_v1/tests/test_version_history.py` | 5 | Unit | Version snapshot model |
+| `AstraNotes_v1/tests/test_repository.py` | 7 | Unit | JsonFile repository adapter |
+| `AstraNotes_v1/tests/test_version_history.py` | 3 | Unit | Version snapshot model |
 | `app/tests/test_sqlite_repository.py` | 17 | Integration | SQLite adapter CRUD + version history (TSQ-01–17) |
 | `app/tests/test_notes_api.py` | 23 | Integration | HTTP endpoints, passwords, access control (TNA-01–18) |
 | `app/tests/test_version_history_api.py` | 5 | Integration | Version history API (TVH-01–05) |

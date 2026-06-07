@@ -191,7 +191,7 @@
 <div class="container">
 
   <div class="stats-bar">
-    <div class="stat-card"><div class="val val-white">22</div><div class="lbl">Commits on main</div></div>
+    <div class="stat-card"><div class="val val-white">25</div><div class="lbl">Commits on main</div></div>
     <div class="stat-card"><div class="val val-blue">3</div><div class="lbl">Branches</div></div>
     <div class="stat-card"><div class="val val-green">84</div><div class="lbl">Tests Passing</div></div>
     <div class="stat-card"><div class="val val-green">✓</div><div class="lbl">CI Passing</div></div>
@@ -206,16 +206,49 @@
   <div class="graph-wrap" id="graphWrap">
     <div class="commits" id="commits">
 
+      <!-- 361d6f3 -->
+      <div class="commit" id="c-361d6f3" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950;box-shadow:0 0 0 3px rgba(35,134,54,.25)"></div></div>
+        <div class="row">
+          <span class="hash">361d6f3</span>
+          <span class="msg">fix: note password reset flow and password change popover</span>
+          <span class="badge b-fix">fix</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-06-07 04:29</span></div>
+        <div class="refs"><span class="ref r-head">HEAD</span><span class="ref r-main">main</span><span class="ref r-remote">origin/main</span></div>
+        <div class="detail"><div class="files"><div class="file-row"><span class="fname">app/static/index.html</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span><span class="bl bd"></span></span><span class="na">+157</span><span class="nd">-49</span></span></div></div><div class="summary">1 file · <strong>+157</strong> / <strong>-49</strong><br>Fix the Password popover being clipped invisible by overflow:hidden (the button appeared unresponsive). After 3 wrong note-password attempts, switch the unlock modal into a dedicated reset mode: verify account password, then set a new note password — or "Set Later" to unlock without one. Require account-password verification before changing a note password from the editor popover.</div></div>
+      </div>
+      <!-- 55c54ed -->
+      <div class="commit" id="c-55c54ed" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950"></div></div>
+        <div class="row">
+          <span class="hash">55c54ed</span>
+          <span class="msg">docs: mark Architecture Decision Log as complete (W1-10) in README</span>
+          <span class="badge b-chore">docs</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-06-06 02:10</span></div>
+        <div class="detail"><div class="files"><div class="file-row"><span class="fname">README.md</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl bd"></span><span class="bl be"></span><span class="bl be"></span><span class="bl be"></span></span><span class="na">+1</span><span class="nd">-1</span></span></div></div><div class="summary">1 file · <strong>+1</strong> / <strong>-1</strong><br>Update the README artifact table: the Architecture Decision Log row changed from "W1-2 → ongoing" to "W1-10 (complete)".</div></div>
+      </div>
+      <!-- 2fb480a -->
+      <div class="commit" id="c-2fb480a" onclick="tog(this)">
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950"></div></div>
+        <div class="row">
+          <span class="hash">2fb480a</span>
+          <span class="msg">docs: regenerate git-history.html for final submission</span>
+          <span class="badge b-chore">docs</span>
+        </div>
+        <div class="meta"><span>FranklinZhong</span><span>2026-06-05 23:12</span></div>
+        <div class="detail"><div class="files"><div class="file-row"><span class="fname">git-history.html</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span><span class="bl bd"></span><span class="bl be"></span></span><span class="na">+237</span><span class="nd">-134</span></span></div></div><div class="summary">1 file · <strong>+237</strong> / <strong>-134</strong><br>Regenerate the interactive commit-history visualization for final submission (22 commits, 84 tests at the time of generation).</div></div>
+      </div>
       <!-- f73ce6d -->
       <div class="commit" id="c-f73ce6d" onclick="tog(this)">
-        <div class="dot-anchor"><div class="dot" style="background:#3fb950;box-shadow:0 0 0 3px rgba(35,134,54,.25)"></div></div>
+        <div class="dot-anchor"><div class="dot" style="background:#3fb950"></div></div>
         <div class="row">
           <span class="hash">f73ce6d</span>
           <span class="msg">chore: final repo cleanup and test count sync</span>
           <span class="badge b-chore">chore</span>
         </div>
         <div class="meta"><span>FranklinZhong</span><span>2026-06-05 23:04</span></div>
-        <div class="refs"><span class="ref r-head">HEAD</span><span class="ref r-main">main</span><span class="ref r-remote">origin/main</span></div>
         <div class="detail"><div class="files"><div class="file-row"><span class="fname">planning/TRACEABILITY.md</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span><span class="bl bd"></span><span class="bl be"></span></span><span class="na">+3</span><span class="nd">-2</span></span></div><div class="file-row"><span class="fname">planning/sprint_log.md</span><span class="fstat"><span class="bar"><span class="bl ba"></span><span class="bl ba"></span><span class="bl ba"></span><span class="bl bd"></span><span class="bl be"></span></span><span class="na">+2</span><span class="nd">-1</span></span></div><div class="file-row"><span class="fname">.vscode/launch.json</span><span class="fstat"><span class="bar"><span class="bl bd"></span><span class="bl bd"></span><span class="bl bd"></span><span class="bl bd"></span><span class="bl be"></span></span><span class="nd">-15</span></span></div><div class="file-row"><span class="fname">.vscode/tasks.json</span><span class="fstat"><span class="bar"><span class="bl bd"></span><span class="bl bd"></span><span class="bl bd"></span><span class="bl bd"></span><span class="bl be"></span></span><span class="nd">-17</span></span></div></div><div class="summary">4 files · <strong>+5</strong> / <strong>-35</strong><br>Remove IDE files from git tracking; update test counts to 84 throughout TRACEABILITY.md and sprint_log.md.</div></div>
       </div>
       <!-- b48536b -->
@@ -500,6 +533,9 @@ function drawGraph() {
   });
 
   const colors = {
+    '361d6f3': '#3fb950',
+    '55c54ed': '#3fb950',
+    '2fb480a': '#3fb950',
     'f73ce6d': '#3fb950',
     'b48536b': '#3fb950',
     'a79c0b6': '#3fb950',
@@ -525,6 +561,9 @@ function drawGraph() {
   };
 
   const parents = {
+    '361d6f3': '55c54ed',
+    '55c54ed': '2fb480a',
+    '2fb480a': 'f73ce6d',
     'f73ce6d': 'b48536b',
     'b48536b': 'a79c0b6',
     'a79c0b6': 'e301046',
